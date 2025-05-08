@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const axios = require('axios'); // Tambahkan import axios
 const { pool } = require('../config/db');
 const { validationResult } = require('express-validator');
 require('dotenv').config();
@@ -32,6 +33,48 @@ const createSendToken = (user, statusCode, res) => {
 };
 
 /**
+ * Fungsi untuk mendapatkan ID provinsi berdasarkan nama provinsi
+ */
+const getProvinceId = async (provinceName) => {
+  try {
+    const response = await axios.get('https://kanglerian.my.id/api-wilayah-indonesia/api/provinces.json');
+    const provinces = response.data;
+    
+    // Cari provinsi berdasarkan nama (case insensitive)
+    const province = provinces.find(p => 
+      p.name.toLowerCase() === provinceName.toLowerCase()
+    );
+    
+    return province ? province.id : null;
+  } catch (error) {
+    console.error('Error fetching province data:', error);
+    return null;
+  }
+};
+
+/**
+ * Fungsi untuk mendapatkan ID kota berdasarkan nama kota dan ID provinsi
+ */
+const getCityId = async (cityName, provinceId) => {
+  try {
+    if (!provinceId) return null;
+    
+    const response = await axios.get(`https://kanglerian.my.id/api-wilayah-indonesia/api/regencies/${provinceId}.json`);
+    const cities = response.data;
+    
+    // Cari kota berdasarkan nama (case insensitive)
+    const city = cities.find(c => 
+      c.name.toLowerCase() === cityName.toLowerCase()
+    );
+    
+    return city ? city.id : null;
+  } catch (error) {
+    console.error('Error fetching city data:', error);
+    return null;
+  }
+};
+
+/**
  * Controller untuk mendaftarkan pengguna baru
  */
 exports.register = async (req, res, next) => {
@@ -46,7 +89,7 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    const { name, email, password, province_id, province_name, city_id, city_name } = req.body;
+    const { name, email, password, province_name, city_name } = req.body;
 
     // Cek apakah email sudah terdaftar
     const [existingUser] = await pool.query(
@@ -61,13 +104,25 @@ exports.register = async (req, res, next) => {
       });
     }
 
+    // Ambil province_id dan city_id dari API
+    let province_id = null;
+    let city_id = null;
+    
+    if (province_name) {
+      province_id = await getProvinceId(province_name);
+      
+      if (city_name && province_id) {
+        city_id = await getCityId(city_name, province_id);
+      }
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Simpan pengguna baru ke database
     const [result] = await pool.query(
       'INSERT INTO users (name, email, password, province_id, province_name, city_id, city_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [name, email, hashedPassword, province_id || null, province_name || null, city_id || null, city_name || null]
+      [name, email, hashedPassword, province_id, province_name, city_id, city_name]
     );
 
     // Ambil data pengguna yang baru dibuat

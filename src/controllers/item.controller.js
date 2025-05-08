@@ -3,6 +3,49 @@ const ItemModel = require('../models/item.model');
 const ItemPhotoModel = require('../models/itemPhoto.model');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios'); // Tambahkan import axios
+
+/**
+ * Fungsi untuk mendapatkan ID provinsi berdasarkan nama provinsi
+ */
+const getProvinceId = async (provinceName) => {
+  try {
+    const response = await axios.get('https://kanglerian.my.id/api-wilayah-indonesia/api/provinces.json');
+    const provinces = response.data;
+    
+    // Cari provinsi berdasarkan nama (case insensitive)
+    const province = provinces.find(p => 
+      p.name.toLowerCase() === provinceName.toLowerCase()
+    );
+    
+    return province ? province.id : null;
+  } catch (error) {
+    console.error('Error fetching province data:', error);
+    return null;
+  }
+};
+
+/**
+ * Fungsi untuk mendapatkan ID kota berdasarkan nama kota dan ID provinsi
+ */
+const getCityId = async (cityName, provinceId) => {
+  try {
+    if (!provinceId) return null;
+    
+    const response = await axios.get(`https://kanglerian.my.id/api-wilayah-indonesia/api/regencies/${provinceId}.json`);
+    const cities = response.data;
+    
+    // Cari kota berdasarkan nama (case insensitive)
+    const city = cities.find(c => 
+      c.name.toLowerCase() === cityName.toLowerCase()
+    );
+    
+    return city ? city.id : null;
+  } catch (error) {
+    console.error('Error fetching city data:', error);
+    return null;
+  }
+};
 
 /**
  * Controller untuk mendapatkan semua item dengan filter dan pagination
@@ -92,14 +135,24 @@ exports.createItem = async (req, res, next) => {
       is_available_for_sell,
       is_available_for_rent,
       deposit_amount,
-      province_id,
       province_name,
-      city_id,
       city_name
     } = req.body;
     
     // Pastikan pengguna telah login
     const userId = req.user.id;
+    
+    // Ambil province_id dan city_id dari API
+    let province_id = null;
+    let city_id = null;
+    
+    if (province_name) {
+      province_id = await getProvinceId(province_name);
+      
+      if (city_name && province_id) {
+        city_id = await getCityId(city_name, province_id);
+      }
+    }
     
     // Buat item baru
     const itemData = {
@@ -197,11 +250,28 @@ exports.updateItem = async (req, res, next) => {
       is_available_for_rent,
       deposit_amount,
       status,
-      province_id,
       province_name,
-      city_id,
       city_name
     } = req.body;
+    
+    // Ambil province_id dan city_id dari API jika province_name atau city_name diubah
+    let province_id = undefined;
+    let city_id = undefined;
+    
+    if (province_name !== undefined) {
+      province_id = await getProvinceId(province_name);
+      
+      // Jika province berubah, kota juga harus diupdate
+      if (city_name !== undefined && province_id) {
+        city_id = await getCityId(city_name, province_id);
+      } else if (province_id) {
+        // Jika hanya province yang berubah, reset city
+        city_id = null;
+      }
+    } else if (city_name !== undefined && existingItem.province_id) {
+      // Jika hanya city yang berubah, gunakan province_id yang ada
+      city_id = await getCityId(city_name, existingItem.province_id);
+    }
     
     // Persiapkan data yang akan diupdate
     const updateData = {};
@@ -219,10 +289,10 @@ exports.updateItem = async (req, res, next) => {
     }
     if (deposit_amount !== undefined) updateData.deposit_amount = deposit_amount;
     if (status !== undefined) updateData.status = status;
-    if (province_id !== undefined) updateData.province_id = province_id;
     if (province_name !== undefined) updateData.province_name = province_name;
-    if (city_id !== undefined) updateData.city_id = city_id;
+    if (province_id !== undefined) updateData.province_id = province_id;
     if (city_name !== undefined) updateData.city_name = city_name;
+    if (city_id !== undefined) updateData.city_id = city_id;
     
     // Update item
     const updatedItem = await ItemModel.update(id, updateData);

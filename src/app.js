@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const itemRoutes = require('./routes/item.routes');
 const itemPhotoRoutes = require('./routes/itemPhoto.routes');
+const transactionRoutes = require('./routes/transaction.routes');
 
 // Import middlewares
 const errorMiddleware = require('./middlewares/error.middleware');
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/item-photos', itemPhotoRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // Menyajikan file statis dari folder uploads
 app.use('/uploads', express.static('uploads'));

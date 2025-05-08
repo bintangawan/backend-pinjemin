@@ -20,7 +20,7 @@ Authorization: Bearer <token>
 
 ## Endpoint
 
-### Autentikasi
+## Autentikasi
 
 #### Registrasi Pengguna
 
@@ -34,9 +34,7 @@ Authorization: Bearer <token>
     "name": "Nama Pengguna",
     "email": "email@example.com",
     "password": "password123",
-    "province_id": 1,
     "province_name": "Jawa Barat",
-    "city_id": 101,
     "city_name": "Bandung"
   }
   ```
@@ -207,7 +205,7 @@ Authorization: Bearer <token>
   }
   ```
 
-### Item
+## Item
 
 #### Membuat Item Baru
 
@@ -222,12 +220,10 @@ Authorization: Bearer <token>
   - `description` - Deskripsi item (opsional)
   - `price_sell` - Harga jual (opsional)
   - `price_rent` - Harga sewa (opsional)
-  - `is_available_for_sell` - Ketersediaan untuk dijual (boolean, opsional)
-  - `is_available_for_rent` - Ketersediaan untuk disewa (boolean, opsional)
+  - `is_available_for_sell` - Ketersediaan untuk dijual (boolean, opsional) (values, true/false)
+  - `is_available_for_rent` - Ketersediaan untuk disewa (boolean, opsional) (values, true/false)
   - `deposit_amount` - Jumlah deposit (opsional)
-  - `province_id` - ID provinsi (opsional)
   - `province_name` - Nama provinsi (opsional)
-  - `city_id` - ID kota (opsional)
   - `city_name` - Nama kota (opsional)
   - `photos` - File foto item (multiple, opsional)
 - **Respons Sukses**:
@@ -503,6 +499,213 @@ Authorization: Bearer <token>
     ]
   }
   ```
+
+## Transaksi
+
+### Mendapatkan Semua Transaksi Pengguna
+
+- **URL**: `/transactions`
+- **Metode**: `GET`
+- **Autentikasi**: Ya
+- **Deskripsi**: Mendapatkan semua transaksi yang dilakukan oleh pengguna yang sedang login
+- **Parameter Query**:
+  - `type` - Filter berdasarkan tipe transaksi (rent/buy, opsional)
+  - `status` - Filter berdasarkan status transaksi (pending/confirmed/completed/cancelled, opsional)
+  - `page` - Nomor halaman (default: 1)
+  - `limit` - Jumlah transaksi per halaman (default: 10)
+- **Respons Sukses**:
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "id": 1,
+        "buyer_id": 2,
+        "item_id": 1,
+        "type": "rent",
+        "status": "pending",
+        "payment_method": "cod",
+        "total_price": 450000.0,
+        "rent_start_date": "2023-06-01T00:00:00.000Z",
+        "rent_end_date": "2023-06-04T00:00:00.000Z",
+        "deposit_paid": 5000000.0,
+        "created_at": "2023-05-15T12:00:00.000Z",
+        "item_name": "Laptop Gaming",
+        "item_thumbnail": "/uploads/items/laptop1.jpg",
+        "seller_name": "Nama Pemilik"
+      }
+    ],
+    "pagination": {
+      "total": 5,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 1
+    }
+  }
+  ```
+
+### Mendapatkan Detail Transaksi
+
+- **URL**: `/transactions/:id`
+- **Metode**: `GET`
+- **Autentikasi**: Ya
+- **Deskripsi**: Mendapatkan detail transaksi berdasarkan ID
+- **Parameter URL**: `id` - ID transaksi
+- **Respons Sukses**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": 1,
+      "buyer_id": 2,
+      "item_id": 1,
+      "type": "rent",
+      "status": "pending",
+      "payment_method": "cod",
+      "total_price": 450000.0,
+      "rent_start_date": "2023-06-01T00:00:00.000Z",
+      "rent_end_date": "2023-06-04T00:00:00.000Z",
+      "deposit_paid": 5000000.0,
+      "created_at": "2023-05-15T12:00:00.000Z",
+      "item_name": "Laptop Gaming",
+      "item_description": "Laptop gaming dengan spesifikasi tinggi",
+      "item_photos": [
+        "/uploads/items/laptop1.jpg",
+        "/uploads/items/laptop2.jpg"
+      ],
+      "seller_name": "Nama Pemilik",
+      "seller_email": "pemilik@example.com",
+      "buyer_name": "Nama Pembeli",
+      "buyer_email": "pembeli@example.com"
+    }
+  }
+  ```
+
+### Membuat Transaksi Baru
+
+- **URL**: `/transactions`
+- **Metode**: `POST`
+- **Autentikasi**: Ya
+- **Deskripsi**: Membuat transaksi baru (pembelian atau penyewaan)
+- **Body**:
+  ```json
+  {
+    "item_id": 1,
+    "type": "rent",
+    "rent_start_date": "2023-06-01",
+    "rent_end_date": "2023-06-04",
+    "deposit_paid": 5000000.0
+  }
+  ```
+  atau
+  ```json
+  {
+    "item_id": 1,
+    "type": "buy"
+  }
+  ```
+- **Respons Sukses**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": 1,
+      "buyer_id": 2,
+      "item_id": 1,
+      "type": "rent",
+      "status": "pending",
+      "payment_method": "cod",
+      "total_price": 450000.0,
+      "rent_start_date": "2023-06-01T00:00:00.000Z",
+      "rent_end_date": "2023-06-04T00:00:00.000Z",
+      "deposit_paid": 5000000.0,
+      "created_at": "2023-05-15T12:00:00.000Z"
+    }
+  }
+  ```
+
+### Memperbarui Status Transaksi
+
+- **URL**: `/transactions/:id/status`
+- **Metode**: `PATCH`
+- **Autentikasi**: Ya
+- **Deskripsi**: Memperbarui status transaksi (hanya dapat dilakukan oleh pemilik item atau pembeli)
+- **Parameter URL**: `id` - ID transaksi
+- **Body**:
+  ```json
+  {
+    "status": "confirmed"
+  }
+  ```
+  Status yang tersedia:
+  - `pending` - Menunggu konfirmasi
+  - `confirmed` - Dikonfirmasi
+  - `completed` - Selesai
+  - `cancelled` - Dibatalkan
+- **Respons Sukses**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": 1,
+      "buyer_id": 2,
+      "item_id": 1,
+      "type": "rent",
+      "status": "confirmed",
+      "payment_method": "cod",
+      "total_price": 450000.0,
+      "rent_start_date": "2023-06-01T00:00:00.000Z",
+      "rent_end_date": "2023-06-04T00:00:00.000Z",
+      "deposit_paid": 5000000.0,
+      "created_at": "2023-05-15T12:00:00.000Z",
+      "updated_at": "2023-05-16T10:00:00.000Z"
+    }
+  }
+  ```
+
+### Mendapatkan Transaksi yang Diterima Pemilik
+
+- **URL**: `/transactions/received`
+- **Metode**: `GET`
+- **Autentikasi**: Ya
+- **Deskripsi**: Mendapatkan semua transaksi yang diterima oleh pengguna sebagai pemilik item
+- **Parameter Query**:
+  - `type` - Filter berdasarkan tipe transaksi (rent/buy, opsional)
+  - `status` - Filter berdasarkan status transaksi (pending/confirmed/completed/cancelled, opsional)
+  - `page` - Nomor halaman (default: 1)
+  - `limit` - Jumlah transaksi per halaman (default: 10)
+- **Respons Sukses**:
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "id": 1,
+        "buyer_id": 2,
+        "item_id": 1,
+        "type": "rent",
+        "status": "pending",
+        "payment_method": "cod",
+        "total_price": 450000.0,
+        "rent_start_date": "2023-06-01T00:00:00.000Z",
+        "rent_end_date": "2023-06-04T00:00:00.000Z",
+        "deposit_paid": 5000000.0,
+        "created_at": "2023-05-15T12:00:00.000Z",
+        "item_name": "Laptop Gaming",
+        "item_thumbnail": "/uploads/items/laptop1.jpg",
+        "buyer_name": "Nama Pembeli"
+      }
+    ],
+    "pagination": {
+      "total": 3,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 1
+    }
+  }
+  ```
+
+Dokumentasi ini mencakup semua endpoint API transaksi yang tersedia di aplikasi Pinjemin. Setiap endpoint memiliki deskripsi, parameter yang diperlukan, dan contoh respons sukses.
 
 ## Kode Status
 

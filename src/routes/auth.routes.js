@@ -16,15 +16,9 @@ const registerValidation = [
   body('password')
     .notEmpty().withMessage('Password tidak boleh kosong')
     .isLength({ min: 6 }).withMessage('Password minimal 6 karakter'),
-  body('province_id')
-    .optional()
-    .isInt().withMessage('ID provinsi harus berupa string'),
   body('province_name')
     .optional()
     .isString().withMessage('Nama provinsi harus berupa string'),
-  body('city_id')
-    .optional()
-    .isInt().withMessage('ID kota harus berupa string'),
   body('city_name')
     .optional()
     .isString().withMessage('Nama kota harus berupa string')

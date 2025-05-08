@@ -108,7 +108,6 @@ CREATE TABLE `reviews` (
   `id` int NOT NULL,
   `user_id` int NOT NULL,
   `item_id` int NOT NULL,
-  `rating` int DEFAULT NULL,
   `comment` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ;

@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 require('dotenv').config();
 
 // Import routes
@@ -9,7 +10,9 @@ const userRoutes = require('./routes/user.routes');
 const itemRoutes = require('./routes/item.routes');
 const itemPhotoRoutes = require('./routes/itemPhoto.routes');
 const transactionRoutes = require('./routes/transaction.routes');
-
+const reviewRoutes = require('./routes/review.routes');
+const messageRoutes = require('./routes/message.routes'); // Tambahkan import route message
+const notificationRoutes = require('./routes/notification.routes');
 // Import middlewares
 const errorMiddleware = require('./middlewares/error.middleware');
 
@@ -28,9 +31,12 @@ app.use('/api/users', userRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/item-photos', itemPhotoRoutes);
 app.use('/api/transactions', transactionRoutes);
+// app.use('/api/reviews', reviewRoutes);
+app.use('/api/messages', messageRoutes);
+// app.use('/api/notifications', notificationRoutes);
 
-// Menyajikan file statis dari folder uploads
-app.use('/uploads', express.static('uploads'));
+// Serve static files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Route untuk health check
 app.get('/api/health', (req, res) => {

@@ -36,8 +36,9 @@
 1. Buat akun pengguna
 2. Upload barang yang ingin disewakan/dijual
 3. Cari barang untuk disewa atau dibeli
-4. Lakukan transaksi dengan sistem jumpa langsung (COD)
-5. Lihat status transaksi dan ulasan
+4. Komunikasi antar pengguna
+5. Lakukan transaksi dengan sistem jumpa langsung (COD)
+6. Lihat status transaksi dan ulasan
 
 ## Struktur Folder
 
@@ -91,8 +92,8 @@ pinjemin-api/
 │ │ └── formatDate.js
 │
 │ ├── uploads/ # Folder simpanan file upload
-│ │ ├── thumbnails/
-│ │ └── gallery/
+│ │ ├── items/
+│ │ └── users/
 │
 │ ├── app.js # Inisialisasi app (middleware, route)
 │ └── server.js # Entry point (port listener)

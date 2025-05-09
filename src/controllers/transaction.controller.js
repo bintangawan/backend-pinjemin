@@ -26,6 +26,16 @@ exports.getUserTransactions = async (req, res, next) => {
     
     const result = await TransactionModel.findAll(filters, page, limit);
     
+    // Jika tidak ada transaksi, kembalikan array kosong dengan pesan yang sesuai
+    if (result.transactions.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'Belum ada transaksi',
+        data: [],
+        pagination: result.pagination
+      });
+    }
+    
     res.status(200).json({
       status: 'success',
       data: result.transactions,
@@ -209,54 +219,19 @@ exports.updateTransactionStatus = async (req, res, next) => {
     const { status } = req.body;
     const userId = req.user.id;
     
-    // Cek apakah transaksi ada
-    const transaction = await TransactionModel.findById(id);
+    // Gunakan metode updateTransactionStatus dari service
+    const result = await transactionService.updateTransactionStatus(id, status, userId);
     
-    if (!transaction) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Transaksi tidak ditemukan'
-      });
-    }
-    
-    // Cek apakah pengguna adalah pembeli atau pemilik item
-    const item = await ItemModel.findById(transaction.item_id);
-    
-    if (transaction.buyer_id !== userId && item.user_id !== userId) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Anda tidak memiliki akses untuk memperbarui transaksi ini'
-      });
-    }
-    
-    // Validasi perubahan status
-    const validStatusTransitions = await transactionService.validateStatusTransition(
-      transaction,
-      status,
-      userId,
-      item.user_id
-    );
-    
-    if (!validStatusTransitions.valid) {
+    if (!result.success) {
       return res.status(400).json({
         status: 'error',
-        message: validStatusTransitions.message
+        message: result.message
       });
-    }
-    
-    // Update status transaksi
-    const updatedTransaction = await TransactionModel.updateStatus(id, status);
-    
-    // Update status item jika diperlukan
-    if (status === 'completed' || status === 'returned') {
-      await ItemModel.update(transaction.item_id, { status: 'available' });
-    } else if (status === 'cancelled' && (transaction.status === 'pending' || transaction.status === 'ongoing')) {
-      await ItemModel.update(transaction.item_id, { status: 'available' });
     }
     
     res.status(200).json({
       status: 'success',
-      data: updatedTransaction
+      data: result.data
     });
   } catch (error) {
     next(error);

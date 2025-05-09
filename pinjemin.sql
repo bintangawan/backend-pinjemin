@@ -292,6 +292,11 @@ ALTER TABLE `messages`
   ADD CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `messages_ibfk_3` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`);
 
+ALTER TABLE `messages`
+  ADD COLUMN `transaction_id` int DEFAULT NULL AFTER `item_id`,
+  ADD KEY `transaction_id` (`transaction_id`),
+  ADD CONSTRAINT `messages_ibfk_4` FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`);
+
 --
 -- Constraints for table `notifications`
 --

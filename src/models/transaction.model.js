@@ -83,7 +83,8 @@ class TransactionModel {
         queryParams
       );
       
-      const total = countResult[0].total;
+      // Pastikan countResult[0] ada sebelum mengakses total
+      const total = countResult && countResult[0] ? countResult[0].total : 0;
       
       // Add pagination
       const offset = (page - 1) * limit;
@@ -99,12 +100,12 @@ class TransactionModel {
       const [rows] = await pool.query(query, queryParams);
       
       return {
-        transactions: rows,
+        transactions: rows || [],
         pagination: {
           total,
           page: parseInt(page) || 1,
           limit: parsedLimit,
-          totalPages: Math.ceil(total / parsedLimit)
+          totalPages: Math.ceil(total / parsedLimit) || 1
         }
       };
     } catch (error) {

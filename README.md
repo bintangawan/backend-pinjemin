@@ -22,9 +22,9 @@
 - `items` - barang yang diupload
 - `item_photos` - foto-foto produk
 - `transactions` - transaksi peminjaman atau pembelian (dengan metode pembayaran COD)
-- `reviews` - penilaian pengguna terhadap barang
+- `reviews` - komentar pengguna terhadap barang
 - `messages` - komunikasi antar pengguna
-- `notifications` - pengingat dan notifikasi sistem
+- `notifications` - pengingat dan notifikasi sistem secara otomatis dengan web-push
 
 ## Teknologi
 

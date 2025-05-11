@@ -4,6 +4,7 @@ const { testConnection } = require('./config/db');
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
 const { pool } = require('./config/db');
+const notificationController = require('./controllers/notification.controller');
 require('dotenv').config();
 const server = http.createServer(app);
 
@@ -97,7 +98,7 @@ const startServer = async () => {
       console.error('Server tidak dapat dimulai karena koneksi database gagal.');
       process.exit(1);
     }
-    
+
     // Mulai server jika koneksi database berhasil
     app.listen(PORT, () => {
       console.log(`Server berjalan pada port ${PORT} dalam mode ${process.env.NODE_ENV || 'development'}`);
@@ -106,6 +107,16 @@ const startServer = async () => {
     console.error('Terjadi kesalahan saat memulai server:', error.message);
     process.exit(1);
   }
+
+  // Setup cron job untuk memeriksa transaksi yang akan jatuh tempo setiap hari pada jam 8 pagi
+  setInterval(async () => {
+    const now = new Date();
+    if (now.getHours() === 8 && now.getMinutes() === 0) {
+      console.log('Memeriksa transaksi yang akan jatuh tempo...');
+      const count = await notificationController.checkRentDueNotifications();
+      console.log(`${count} notifikasi pengingat jatuh tempo telah dibuat`);
+    }
+  }, 60000); // Periksa setiap menit
 };
 
 // Tangani unhandled promise rejections

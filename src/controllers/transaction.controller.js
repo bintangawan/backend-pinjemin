@@ -183,6 +183,10 @@ exports.createTransaction = async (req, res, next) => {
     };
     
     const newTransaction = await TransactionModel.create(transactionData);
+
+    // Buat notifikasi untuk pemilik item
+    const notificationController = require('./notification.controller');
+    await notificationController.createTransactionNotification(newTransaction);
     
     // Update status item menjadi 'rented' atau 'sold' jika transaksi berhasil
     if (type === 'rent') {

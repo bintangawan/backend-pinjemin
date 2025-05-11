@@ -214,6 +214,10 @@ ALTER TABLE `transactions`
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `email` (`email`);
+  
+-- Tambahkan kolom subscription pada tabel notifications
+ALTER TABLE `users`
+  ADD COLUMN `push_subscription` TEXT NULL AFTER `city_name`;
 
 --
 -- AUTO_INCREMENT for dumped tables

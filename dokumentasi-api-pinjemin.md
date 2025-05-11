@@ -941,6 +941,403 @@ socket.on("messageError", (error) => {
 5. Konten pesan dibatasi maksimal 1000 karakter.
    Too many current requests. Your queue position is 1. Please wait for a while or switch to other models for a smoother experience.
 
+## Notifikasi
+
+### Menyimpan Subscription Web Push
+
+**Endpoint:** `POST /api/notifications/subscribe`
+
+**Headers:**
+
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "endpoint": "https://fcm.googleapis.com/fcm/send/example-endpoint",
+  "expirationTime": null,
+  "keys": {
+    "p256dh": "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
+    "auth": "tBHItJI5svbpez7KI4CCxg"
+  }
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "status": "success",
+  "message": "Subscription berhasil disimpan",
+  "data": {
+    "publicKey": "BPO-IPD42nX4i4zBiZKfCD1ab_zidEjSry6bs9FRrHjGkWKNkpH6lGB9tyJqIhXnKIXii63Hyka_8P2xu4yg1g0"
+  }
+}
+```
+
+**Response (400 Bad Request):**
+
+```json
+{
+  "status": "error",
+  "message": "Validasi gagal",
+  "errors": [
+    {
+      "msg": "Endpoint tidak boleh kosong",
+      "param": "endpoint",
+      "location": "body"
+    }
+  ]
+}
+```
+
+### Mendapatkan Semua Notifikasi Pengguna
+
+**Endpoint:** `GET /api/notifications`
+
+**Headers:**
+
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "message": "John Doe melakukan penyewaan untuk item \"Kamera DSLR\" dengan harga 150000",
+      "is_read": 0,
+      "created_at": "2023-07-15T08:30:00.000Z"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "message": "Jane Smith mengirim pesan: \"Apakah item masih tersedia?\"",
+      "is_read": 1,
+      "created_at": "2023-07-14T10:15:00.000Z"
+    }
+  ],
+  "pagination": {
+    "total": 8,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 1
+  }
+}
+```
+
+### Menandai Semua Notifikasi Sebagai Telah Dibaca
+
+**Endpoint:** `PATCH /api/notifications/read-all`
+
+**Headers:**
+
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "status": "success",
+  "message": "Semua notifikasi telah ditandai sebagai dibaca"
+}
+```
+
+### Menandai Notifikasi Tertentu Sebagai Telah Dibaca
+
+**Endpoint:** `PATCH /api/notifications/{id}/read`
+
+**Headers:**
+
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "status": "success",
+  "message": "Notifikasi telah ditandai sebagai dibaca"
+}
+```
+
+**Response (404 Not Found):**
+
+```json
+{
+  "status": "error",
+  "message": "Notifikasi tidak ditemukan atau Anda tidak memiliki akses"
+}
+```
+
+### Menghapus Notifikasi
+
+**Endpoint:** `DELETE /api/notifications/{id}`
+
+**Headers:**
+
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "status": "success",
+  "message": "Notifikasi berhasil dihapus"
+}
+```
+
+**Response (404 Not Found):**
+
+```json
+{
+  "status": "error",
+  "message": "Notifikasi tidak ditemukan atau Anda tidak memiliki akses"
+}
+```
+
+### Mendapatkan VAPID Public Key
+
+**Endpoint:** `GET /api/notifications/vapid-public-key`
+
+**Headers:**
+
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "status": "success",
+  "publicKey": "BPO-IPD42nX4i4zBiZKfCD1ab_zidEjSry6bs9FRrHjGkWKNkpH6lGB9tyJqIhXnKIXii63Hyka_8P2xu4yg1g0"
+}
+```
+
+## Reviews
+
+### Mendapatkan Review Berdasarkan Item ID
+
+- **URL**: `/api/reviews/item/:itemId`
+- **Metode**: `GET`
+- **Autentikasi**: Tidak
+- **Deskripsi**: Mendapatkan semua review untuk item tertentu
+- **Parameter URL**: `itemId` - ID item
+- **Parameter Query**:
+  - `page` - Nomor halaman (default: 1)
+  - `limit` - Jumlah review per halaman (default: 10)
+- **Respons Sukses**:
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "id": 1,
+        "user_id": 2,
+        "item_id": 3,
+        "comment": "Barang bagus dan sesuai deskripsi",
+        "created_at": "2023-05-15T12:00:00.000Z",
+        "user_name": "Nama Pengguna",
+        "user_email": "user@example.com"
+      }
+    ],
+    "pagination": {
+      "total": 1,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 1
+    }
+  }
+  ```
+- **Respons Error**:
+  ```json
+  {
+    "status": "error",
+    "message": "Item tidak ditemukan"
+  }
+  ```
+
+### Membuat Review Baru
+
+- **URL**: `/api/reviews/item/:itemId`
+- **Metode**: `POST`
+- **Autentikasi**: Ya
+- **Deskripsi**: Membuat review baru untuk item tertentu
+- **Parameter URL**: `itemId` - ID item
+- **Header**:
+  ```
+  Authorization: Bearer <token_jwt>
+  Content-Type: application/json
+  ```
+- **Body**:
+  ```json
+  {
+    "comment": "Barang bagus dan sesuai deskripsi"
+  }
+  ```
+- **Respons Sukses**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": 1,
+      "user_id": 2,
+      "item_id": 3,
+      "comment": "Barang bagus dan sesuai deskripsi",
+      "created_at": "2023-05-15T12:00:00.000Z",
+      "user_name": "Nama Pengguna",
+      "user_email": "user@example.com"
+    }
+  }
+  ```
+- **Respons Error (Validasi)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Validasi gagal",
+    "errors": [
+      {
+        "value": "",
+        "msg": "Komentar tidak boleh kosong",
+        "param": "comment",
+        "location": "body"
+      }
+    ]
+  }
+  ```
+- **Respons Error (Transaksi Belum Selesai)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda hanya dapat memberikan review untuk item yang telah Anda selesaikan transaksinya"
+  }
+  ```
+- **Respons Error (Sudah Review)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda sudah memberikan review untuk item ini"
+  }
+  ```
+- **Respons Error (Tidak Terautentikasi)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda tidak login! Silakan login untuk mendapatkan akses."
+  }
+  ```
+
+### Memperbarui Review
+
+- **URL**: `/api/reviews/:id`
+- **Metode**: `PATCH`
+- **Autentikasi**: Ya
+- **Deskripsi**: Memperbarui review yang dimiliki pengguna
+- **Parameter URL**: `id` - ID review
+- **Header**:
+  ```
+  Authorization: Bearer <token_jwt>
+  Content-Type: application/json
+  ```
+- **Body**:
+  ```json
+  {
+    "comment": "Update: Barang bagus tapi ada sedikit cacat"
+  }
+  ```
+- **Respons Sukses**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": 1,
+      "user_id": 2,
+      "item_id": 3,
+      "comment": "Update: Barang bagus tapi ada sedikit cacat",
+      "created_at": "2023-05-15T12:00:00.000Z",
+      "user_name": "Nama Pengguna",
+      "user_email": "user@example.com"
+    }
+  }
+  ```
+- **Respons Error (Validasi)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Validasi gagal",
+    "errors": [
+      {
+        "value": "",
+        "msg": "Komentar tidak boleh kosong",
+        "param": "comment",
+        "location": "body"
+      }
+    ]
+  }
+  ```
+- **Respons Error (Tidak Memiliki Akses)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda tidak memiliki akses untuk memperbarui review ini"
+  }
+  ```
+- **Respons Error (Tidak Terautentikasi)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda tidak login! Silakan login untuk mendapatkan akses."
+  }
+  ```
+
+### Menghapus Review
+
+- **URL**: `/api/reviews/:id`
+- **Metode**: `DELETE`
+- **Autentikasi**: Ya
+- **Deskripsi**: Menghapus review yang dimiliki pengguna
+- **Parameter URL**: `id` - ID review
+- **Header**:
+  ```
+  Authorization: Bearer <token_jwt>
+  ```
+- **Respons Sukses**:
+  ```json
+  {
+    "status": "success",
+    "message": "Review berhasil dihapus"
+  }
+  ```
+- **Respons Error (Tidak Memiliki Akses)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda tidak memiliki akses untuk menghapus review ini"
+  }
+  ```
+- **Respons Error (Tidak Terautentikasi)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda tidak login! Silakan login untuk mendapatkan akses."
+  }
+  ```
+
 ## Kode Status
 
 - `200 OK` - Permintaan berhasil

@@ -133,6 +133,10 @@ exports.sendMessage = async (req, res, next) => {
     if (io) {
       io.to(`transaction_${transaction_id}`).emit('newMessage', newMessage);
     }
+
+    // Buat notifikasi untuk penerima pesan
+    const notificationController = require('./notification.controller');
+    await notificationController.createMessageNotification(newMessage);
     
     res.status(201).json({
       status: 'success',

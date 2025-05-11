@@ -244,6 +244,22 @@ class TransactionModel {
       throw error;
     }
   }
+
+  /**
+ * Mendapatkan semua transaksi sewa yang sedang berlangsung
+ * @returns {Promise<Array>} - Data transaksi sewa yang sedang berlangsung
+ */
+  static async findOngoingRentals() {
+    try {
+      return await pool.query(
+        `SELECT * FROM transactions 
+        WHERE type = 'rent' 
+        AND status = 'ongoing'`
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = TransactionModel;

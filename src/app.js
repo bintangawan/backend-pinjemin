@@ -31,12 +31,14 @@ app.use('/api/users', userRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/item-photos', itemPhotoRoutes);
 app.use('/api/transactions', transactionRoutes);
-// app.use('/api/reviews', reviewRoutes);
+app.use('/api/reviews', reviewRoutes);
 app.use('/api/messages', messageRoutes);
-// app.use('/api/notifications', notificationRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve static files from public folder
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Route untuk health check
 app.get('/api/health', (req, res) => {

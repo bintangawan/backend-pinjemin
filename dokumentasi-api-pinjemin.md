@@ -205,76 +205,135 @@ Authorization: Bearer <token>
   }
   ```
 
+Saya perlu memeriksa kembali file item.model.js untuk memahami bagaimana thumbnail dan photos diimplementasikan dalam model data item.
+
+toolName: view_files
+
+status: success
+
+filePath: d:/backend-pinjemin/src/controllers/item.controller.js
+
+Saya perlu melihat lebih banyak baris dari file item.controller.js untuk memahami bagaimana thumbnail dan photos diimplementasikan dalam controller.
+
+toolName: view_files
+
+status: success
+
+filePath: d:/backend-pinjemin/src/controllers/item.controller.js
+
+# Dokumentasi API Item
+
+Berikut adalah dokumentasi lengkap untuk API Item pada aplikasi Pinjemin. Dokumentasi ini mencakup semua endpoint yang tersedia, dengan detail header, body, dan response untuk setiap endpoint.
+
 ## Item
 
-#### Membuat Item Baru
+### Membuat Item Baru
 
 - **URL**: `/items`
 - **Metode**: `POST`
 - **Autentikasi**: Ya
-- **Deskripsi**: Membuat item baru
-- **Content-Type**: `multipart/form-data`
+- **Deskripsi**: Membuat item baru dengan upload foto
+- **Header**:
+  ```
+  Authorization: Bearer <token>
+  Content-Type: multipart/form-data
+  ```
 - **Body**:
   - `name` - Nama item (wajib)
   - `category_id` - ID kategori (opsional)
   - `description` - Deskripsi item (opsional)
   - `price_sell` - Harga jual (opsional)
   - `price_rent` - Harga sewa (opsional)
-  - `is_available_for_sell` - Ketersediaan untuk dijual (boolean, opsional) (values, true/false)
-  - `is_available_for_rent` - Ketersediaan untuk disewa (boolean, opsional) (values, true/false)
+  - `is_available_for_sell` - Ketersediaan untuk dijual (boolean, opsional) (values: true/false)
+  - `is_available_for_rent` - Ketersediaan untuk disewa (boolean, opsional) (values: true/false)
   - `deposit_amount` - Jumlah deposit (opsional)
+  - `province_id` - ID provinsi (opsional)
   - `province_name` - Nama provinsi (opsional)
+  - `city_id` - ID kota (opsional)
   - `city_name` - Nama kota (opsional)
-  - `photos` - File foto item (multiple, opsional)
+  - `photos` - File foto item (multiple, opsional) - File pertama akan digunakan sebagai thumbnail
 - **Respons Sukses**:
   ```json
   {
     "status": "success",
     "data": {
-      "id": 1,
+      "id": 9,
       "user_id": 1,
-      "category_id": 2,
-      "name": "Laptop Gaming",
-      "description": "Laptop gaming dengan spesifikasi tinggi",
-      "price_sell": 15000000.0,
-      "price_rent": 150000.0,
-      "is_available_for_sell": 1,
+      "category_id": 1,
+      "name": "Sepeda Gunung Ala-Ala",
+      "description": "Sepeda Gunung Ala-Ala Disewakan",
+      "price_sell": null,
+      "price_rent": "90000.00",
+      "is_available_for_sell": 0,
       "is_available_for_rent": 1,
-      "deposit_amount": 5000000.0,
+      "deposit_amount": "50000.00",
       "status": "available",
-      "province_id": 1,
-      "province_name": "Jawa Barat",
-      "city_id": 101,
-      "city_name": "Bandung",
-      "created_at": "2023-05-01T12:00:00.000Z",
-      "owner_name": "Nama Pengguna",
-      "owner_email": "email@example.com",
-      "category_name": "Elektronik",
-      "photos": ["/uploads/items/laptop1.jpg", "/uploads/items/laptop2.jpg"]
+      "created_at": "2025-05-12T15:56:05.000Z",
+      "province_id": "12",
+      "province_name": "Sumatera Utara",
+      "city_id": "1275",
+      "city_name": "Kota Medan",
+      "thumbnail": "/uploads/items/item-1747065364821-679516032.svg",
+      "photos": [
+        "/uploads/items/item-1747065364821-679516032.svg",
+        "/uploads/items/item-1747065364824-62354470.jpg",
+        "/uploads/items/item-1747065364833-859665810.svg"
+      ],
+      "owner_name": "Imma",
+      "owner_email": "imma@example.com",
+      "category_name": "Track Gunung"
     }
   }
   ```
+- **Respons Error (Validasi)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Validasi gagal",
+    "errors": [
+      {
+        "value": "",
+        "msg": "Nama item tidak boleh kosong",
+        "param": "name",
+        "location": "body"
+      }
+    ]
+  }
+  ```
+- **Respons Error (Tidak Terautentikasi)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda tidak login! Silakan login untuk mendapatkan akses."
+  }
+  ```
 
-#### Memperbarui Item
+### Memperbarui Item
 
 - **URL**: `/items/:id`
 - **Metode**: `PATCH`
 - **Autentikasi**: Ya
 - **Deskripsi**: Memperbarui item yang dimiliki pengguna
 - **Parameter URL**: `id` - ID item
-- **Body**:
-  ```json
-  {
-    "name": "Laptop Gaming Pro",
-    "description": "Laptop gaming dengan spesifikasi tinggi dan tambahan fitur",
-    "price_sell": 16000000.0,
-    "price_rent": 160000.0,
-    "is_available_for_sell": true,
-    "is_available_for_rent": true,
-    "deposit_amount": 5500000.0,
-    "status": "available"
-  }
+- **Header**:
   ```
+  Authorization: Bearer <token>
+  Content-Type: multipart/form-data
+  ```
+- **Body**:
+  - `name` - Nama item (opsional)
+  - `category_id` - ID kategori (opsional)
+  - `description` - Deskripsi item (opsional)
+  - `price_sell` - Harga jual (opsional)
+  - `price_rent` - Harga sewa (opsional)
+  - `is_available_for_sell` - Ketersediaan untuk dijual (boolean, opsional) (values: true/false)
+  - `is_available_for_rent` - Ketersediaan untuk disewa (boolean, opsional) (values: true/false)
+  - `deposit_amount` - Jumlah deposit (opsional)
+  - `province_id` - ID provinsi (opsional)
+  - `province_name` - Nama provinsi (opsional)
+  - `city_id` - ID kota (opsional)
+  - `city_name` - Nama kota (opsional)
+  - `photos` - File foto item (multiple, opsional) - File pertama akan digunakan sebagai thumbnail
 - **Respons Sukses**:
   ```json
   {
@@ -299,27 +358,42 @@ Authorization: Bearer <token>
       "owner_name": "Nama Pengguna",
       "owner_email": "email@example.com",
       "category_name": "Elektronik",
+      "thumbnail": "/uploads/items/laptop1.jpg",
       "photos": ["/uploads/items/laptop1.jpg", "/uploads/items/laptop2.jpg"]
     }
   }
   ```
-
-#### Menghapus Item
-
-- **URL**: `/items/:id`
-- **Metode**: `DELETE`
-- **Autentikasi**: Ya
-- **Deskripsi**: Menghapus item yang dimiliki pengguna
-- **Parameter URL**: `id` - ID item
-- **Respons Sukses**:
+- **Respons Error (Validasi)**:
   ```json
   {
-    "status": "success",
-    "message": "Item berhasil dihapus"
+    "status": "error",
+    "message": "Validasi gagal",
+    "errors": [
+      {
+        "value": "ab",
+        "msg": "Nama item harus antara 3-150 karakter",
+        "param": "name",
+        "location": "body"
+      }
+    ]
+  }
+  ```
+- **Respons Error (Tidak Memiliki Akses)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda tidak memiliki akses untuk memperbarui item ini"
+  }
+  ```
+- **Respons Error (Tidak Terautentikasi)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda tidak login! Silakan login untuk mendapatkan akses."
   }
   ```
 
-#### Mendapatkan Semua Item
+### Mendapatkan Semua Item
 
 - **URL**: `/items`
 - **Metode**: `GET`
@@ -334,6 +408,7 @@ Authorization: Bearer <token>
   - `is_available_for_sell` - Filter berdasarkan ketersediaan untuk dijual (true/false)
   - `page` - Nomor halaman (default: 1)
   - `limit` - Jumlah item per halaman (default: 10)
+- **Header**: Tidak ada header khusus yang diperlukan
 - **Respons Sukses**:
   ```json
   {
@@ -370,13 +445,14 @@ Authorization: Bearer <token>
   }
   ```
 
-#### Mendapatkan Item Berdasarkan ID
+### Mendapatkan Item Berdasarkan ID
 
 - **URL**: `/items/:id`
 - **Metode**: `GET`
 - **Autentikasi**: Tidak
 - **Deskripsi**: Mendapatkan detail item berdasarkan ID
 - **Parameter URL**: `id` - ID item
+- **Header**: Tidak ada header khusus yang diperlukan
 - **Respons Sukses**:
   ```json
   {
@@ -401,104 +477,54 @@ Authorization: Bearer <token>
       "owner_name": "Nama Pengguna",
       "owner_email": "email@example.com",
       "category_name": "Elektronik",
+      "thumbnail": "/uploads/items/laptop1.jpg",
       "photos": ["/uploads/items/laptop1.jpg", "/uploads/items/laptop2.jpg"]
     }
   }
   ```
 
-### Foto Item
+### Menghapus Item
 
-#### Menambahkan Foto Item
-
-- **URL**: `/item-photos/item/:itemId`
-- **Metode**: `POST`
-- **Autentikasi**: Ya
-- **Deskripsi**: Menambahkan foto untuk item tertentu
-- **Parameter URL**: `itemId` - ID item
-- **Content-Type**: `multipart/form-data`
-- **Body**:
-  - `photo` - File foto (wajib)
-- **Respons Sukses**:
-  ```json
-  {
-    "status": "success",
-    "data": {
-      "id": 3,
-      "item_id": 1,
-      "photo_url": "/uploads/items/laptop3.jpg"
-    }
-  }
-  ```
-
-#### Menambahkan Beberapa Foto Item
-
-- **URL**: `/item-photos/item/:itemId/multiple`
-- **Metode**: `POST`
-- **Autentikasi**: Ya
-- **Deskripsi**: Menambahkan beberapa foto sekaligus untuk item tertentu
-- **Parameter URL**: `itemId` - ID item
-- **Content-Type**: `multipart/form-data`
-- **Body**:
-  - `photos` - File foto (multiple, wajib)
-- **Respons Sukses**:
-  ```json
-  {
-    "status": "success",
-    "data": [
-      {
-        "id": 4,
-        "item_id": 1,
-        "photo_url": "/uploads/items/laptop4.jpg"
-      },
-      {
-        "id": 5,
-        "item_id": 1,
-        "photo_url": "/uploads/items/laptop5.jpg"
-      }
-    ]
-  }
-  ```
-
-#### Menghapus Foto Item
-
-- **URL**: `/item-photos/:photoId`
+- **URL**: `/items/:id`
 - **Metode**: `DELETE`
 - **Autentikasi**: Ya
-- **Deskripsi**: Menghapus foto item
-- **Parameter URL**: `photoId` - ID foto
+- **Deskripsi**: Menghapus item yang dimiliki pengguna
+- **Parameter URL**: `id` - ID item
+- **Header**:
+  ```
+  Authorization: Bearer <token>
+  ```
 - **Respons Sukses**:
   ```json
   {
     "status": "success",
-    "message": "Foto berhasil dihapus"
+    "message": "Item berhasil dihapus"
   }
   ```
-
-#### Mendapatkan Foto Item
-
-- **URL**: `/item-photos/item/:itemId`
-- **Metode**: `GET`
-- **Autentikasi**: Tidak
-- **Deskripsi**: Mendapatkan semua foto untuk item tertentu
-- **Parameter URL**: `itemId` - ID item
-- **Respons Sukses**:
+- **Respons Error (Tidak Memiliki Akses)**:
   ```json
   {
-    "status": "success",
-    "data": [
-      {
-        "id": 1,
-        "item_id": 1,
-        "photo_url": "/uploads/items/laptop1.jpg"
-      },
-      {
-        "id": 2,
-        "item_id": 1,
-        "photo_url": "/uploads/items/laptop2.jpg"
-      }
-    ]
+    "status": "error",
+    "message": "Anda tidak memiliki akses untuk menghapus item ini"
   }
   ```
+- **Respons Error (Tidak Terautentikasi)**:
+  ```json
+  {
+    "status": "error",
+    "message": "Anda tidak login! Silakan login untuk mendapatkan akses."
+  }
+  ```
+
+## Catatan Penting
+
+1. Untuk endpoint yang memerlukan autentikasi, token JWT harus disertakan di header permintaan dengan format `Authorization: Bearer <token>`.
+2. Untuk upload foto item, gunakan `Content-Type: multipart/form-data` dan kirim file foto melalui field `photos`.
+3. Foto item dikelola dalam dua field:
+   - `thumbnail`: Foto utama item yang akan ditampilkan di daftar item (menggunakan file pertama dari upload)
+   - `photos`: Array semua foto item yang akan ditampilkan di detail item
+4. Saat membuat atau memperbarui item dengan foto, file pertama yang diunggah akan otomatis dijadikan thumbnail.
+5. Tidak ada lagi endpoint terpisah untuk mengelola foto item karena sudah terintegrasi langsung dalam endpoint item.
 
 ## Transaksi
 

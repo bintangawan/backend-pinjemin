@@ -19,8 +19,7 @@
 
 - `users` - menyimpan data pengguna
 - `categories` - kategori barang
-- `items` - barang yang diupload
-- `item_photos` - foto-foto produk
+- `items` - barang yang diupload beserta fotonya
 - `transactions` - transaksi peminjaman atau pembelian (dengan metode pembayaran COD)
 - `reviews` - komentar pengguna terhadap barang
 - `messages` - komunikasi antar pengguna

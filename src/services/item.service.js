@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const ItemModel = require('../models/item.model');
-const ItemPhotoModel = require('../models/itemPhoto.model');
 
 /**
  * Service untuk mengelola item
@@ -34,22 +33,23 @@ class ItemService {
   }
 
   /**
-   * Menghapus semua foto item dari sistem file dan database
-   * @param {number} itemId - ID item
+   * Menghapus semua foto item dari sistem file
+   * @param {Object} item - Item dengan foto yang akan dihapus
    * @returns {Promise<boolean>} - true jika berhasil, false jika gagal
    */
-  static async deleteAllItemPhotos(itemId) {
+  static async deleteAllItemPhotos(item) {
     try {
-      // Ambil semua foto item
-      const photos = await ItemPhotoModel.findByItemId(itemId);
-      
-      // Hapus file foto dari sistem file
-      for (const photo of photos) {
-        await this.deletePhotoFile(photo.photo_url);
+      // Hapus thumbnail jika ada
+      if (item.thumbnail) {
+        await this.deletePhotoFile(item.thumbnail);
       }
       
-      // Hapus foto dari database
-      await ItemPhotoModel.deleteByItemId(itemId);
+      // Hapus semua foto item
+      if (item.photos && item.photos.length > 0) {
+        for (const photoUrl of item.photos) {
+          await this.deletePhotoFile(photoUrl);
+        }
+      }
       
       return true;
     } catch (error) {
@@ -61,17 +61,43 @@ class ItemService {
   /**
    * Memperbarui foto item
    * @param {number} itemId - ID item
-   * @param {Array<string>} newPhotoUrls - Array URL foto baru
+   * @param {string} thumbnail - URL thumbnail baru
+   * @param {Array<string>} photoUrls - Array URL foto baru
    * @returns {Promise<boolean>} - true jika berhasil, false jika gagal
    */
-  static async updateItemPhotos(itemId, newPhotoUrls) {
+  static async updateItemPhotos(itemId, thumbnail, photoUrls) {
     try {
-      // Hapus semua foto lama
-      await this.deleteAllItemPhotos(itemId);
+      // Ambil item untuk mendapatkan foto lama
+      const item = await ItemModel.findById(itemId);
+      if (!item) return false;
       
-      // Tambahkan foto baru
-      if (newPhotoUrls && newPhotoUrls.length > 0) {
-        await ItemPhotoModel.createMany(itemId, newPhotoUrls);
+      // Hapus foto lama jika ada foto baru
+      if (thumbnail || (photoUrls && photoUrls.length > 0)) {
+        // Jika ada thumbnail baru, hapus thumbnail lama
+        if (thumbnail && item.thumbnail) {
+          await this.deletePhotoFile(item.thumbnail);
+        }
+        
+        // Jika ada foto baru, hapus foto lama
+        if (photoUrls && photoUrls.length > 0 && item.photos && item.photos.length > 0) {
+          for (const photoUrl of item.photos) {
+            await this.deletePhotoFile(photoUrl);
+          }
+        }
+      }
+      
+      // Update item dengan foto baru
+      const updateData = {};
+      if (thumbnail) {
+        updateData.thumbnail = thumbnail;
+      }
+      
+      if (photoUrls && photoUrls.length > 0) {
+        updateData.photos = photoUrls;
+      }
+      
+      if (Object.keys(updateData).length > 0) {
+        await ItemModel.update(itemId, updateData);
       }
       
       return true;

@@ -55,20 +55,11 @@ CREATE TABLE `items` (
   `province_name` varchar(100) DEFAULT NULL,
   `city_id` varchar(10) DEFAULT NULL,
   `city_name` varchar(100) DEFAULT NULL
+  `thumbnail` varchar(255) DEFAULT NULL,
+  `photos` text,
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `item_photos`
---
-
-CREATE TABLE `item_photos` (
-  `id` int NOT NULL,
-  `item_id` int NOT NULL,
-  `photo_url` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
 -- --------------------------------------------------------
 
 --
@@ -170,11 +161,6 @@ ALTER TABLE `items`
   ADD KEY `category_id` (`category_id`);
 
 --
--- Indexes for table `item_photos`
---
-ALTER TABLE `item_photos`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `item_id` (`item_id`);
 
 --
 -- Indexes for table `messages`
@@ -236,12 +222,6 @@ ALTER TABLE `items`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `item_photos`
---
-ALTER TABLE `item_photos`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
@@ -281,12 +261,6 @@ ALTER TABLE `users`
 ALTER TABLE `items`
   ADD CONSTRAINT `items_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `items_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`);
-
---
--- Constraints for table `item_photos`
---
-ALTER TABLE `item_photos`
-  ADD CONSTRAINT `item_photos_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`);
 
 --
 -- Constraints for table `messages`

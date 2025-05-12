@@ -17,9 +17,9 @@ class TransactionModel {
           u.email as buyer_email,
           i.name as item_name,
           i.user_id as seller_id,
+          i.thumbnail as item_photo,
           (SELECT name FROM users WHERE id = i.user_id) as seller_name,
-          (SELECT email FROM users WHERE id = i.user_id) as seller_email,
-          (SELECT photo_url FROM item_photos WHERE item_id = i.id LIMIT 1) as item_photo
+          (SELECT email FROM users WHERE id = i.user_id) as seller_email
         FROM transactions t
         LEFT JOIN users u ON t.buyer_id = u.id
         LEFT JOIN items i ON t.item_id = i.id
@@ -46,8 +46,8 @@ class TransactionModel {
         SELECT t.*, 
           u.name as buyer_name,
           i.name as item_name,
-          (SELECT name FROM users WHERE id = i.user_id) as seller_name,
-          (SELECT photo_url FROM item_photos WHERE item_id = i.id LIMIT 1) as item_photo
+          i.thumbnail as item_photo,
+          (SELECT name FROM users WHERE id = i.user_id) as seller_name
         FROM transactions t
         LEFT JOIN users u ON t.buyer_id = u.id
         LEFT JOIN items i ON t.item_id = i.id
@@ -79,7 +79,7 @@ class TransactionModel {
       
       // Count total transactions for pagination
       const [countResult] = await pool.query(
-        query.replace('SELECT t.*, u.name as buyer_name, i.name as item_name, (SELECT name FROM users WHERE id = i.user_id) as seller_name, (SELECT photo_url FROM item_photos WHERE item_id = i.id LIMIT 1) as item_photo', 'SELECT COUNT(*) as total'),
+        query.replace('SELECT t.*, u.name as buyer_name, i.name as item_name, i.thumbnail as item_photo, (SELECT name FROM users WHERE id = i.user_id) as seller_name', 'SELECT COUNT(*) as total'),
         queryParams
       );
       
@@ -127,8 +127,8 @@ class TransactionModel {
         SELECT t.*, 
           u.name as buyer_name,
           i.name as item_name,
-          (SELECT name FROM users WHERE id = i.user_id) as seller_name,
-          (SELECT photo_url FROM item_photos WHERE item_id = i.id LIMIT 1) as item_photo
+          i.thumbnail as item_photo,
+          (SELECT name FROM users WHERE id = i.user_id) as seller_name
         FROM transactions t
         LEFT JOIN users u ON t.buyer_id = u.id
         LEFT JOIN items i ON t.item_id = i.id
@@ -150,7 +150,7 @@ class TransactionModel {
       
       // Count total transactions for pagination
       const [countResult] = await pool.query(
-        query.replace('SELECT t.*, u.name as buyer_name, i.name as item_name, (SELECT name FROM users WHERE id = i.user_id) as seller_name, (SELECT photo_url FROM item_photos WHERE item_id = i.id LIMIT 1) as item_photo', 'SELECT COUNT(*) as total'),
+        query.replace('SELECT t.*, u.name as buyer_name, i.name as item_name, i.thumbnail as item_photo, (SELECT name FROM users WHERE id = i.user_id) as seller_name', 'SELECT COUNT(*) as total'),
         queryParams
       );
       

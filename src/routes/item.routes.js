@@ -56,17 +56,19 @@ router.get('/:id', itemController.getItemById);
 router.use(authMiddleware.protect);
 
 // Route untuk membuat item baru dengan upload foto
+// Autentikasi dilakukan sebelum upload
 router.post(
   '/',
   uploadMiddleware.uploadItemPhotos,
-  uploadMiddleware.handleMulterError,
   itemValidation,
   itemController.createItem
 );
 
-// Route untuk memperbarui item
+// Route untuk memperbarui item dengan upload foto
+// Autentikasi dilakukan sebelum upload
 router.patch(
   '/:id',
+  uploadMiddleware.uploadItemPhotos,
   itemValidation,
   itemController.updateItem
 );

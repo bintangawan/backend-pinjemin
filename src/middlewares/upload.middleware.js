@@ -58,23 +58,47 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Middleware untuk upload foto item (single)
-exports.uploadItemPhoto = multer({
+// Middleware untuk upload foto item (photos saja, bisa multiple)
+const upload = multer({
   storage: itemStorage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB
   }
-}).single('photo');
+});
 
-// Middleware untuk upload beberapa foto item (multiple)
-exports.uploadItemPhotos = multer({
-  storage: itemStorage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
-  }
-}).array('photos', 5); // Maksimal 5 foto
+// Middleware untuk memproses upload setelah autentikasi
+exports.uploadItemPhotos = (req, res, next) => {
+  // Multer akan menyimpan file setelah middleware ini dipanggil
+  upload.array('photos', 5)(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            status: 'error',
+            message: 'Ukuran file terlalu besar. Maksimal 5MB untuk foto item.'
+          });
+        }
+        
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          return res.status(400).json({
+            status: 'error',
+            message: 'Jumlah file melebihi batas. Maksimal 5 foto item.'
+          });
+        }
+        
+        return res.status(400).json({
+          status: 'error',
+          message: `Error upload: ${err.message}`
+        });
+      }
+      
+      return next(err);
+    }
+    
+    next();
+  });
+};
 
 // Middleware untuk upload foto profil user
 exports.uploadUserPhoto = multer({
@@ -98,7 +122,7 @@ exports.handleMulterError = (err, req, res, next) => {
     if (err.code === 'LIMIT_UNEXPECTED_FILE') {
       return res.status(400).json({
         status: 'error',
-        message: 'Jumlah file melebihi batas. Maksimal 5 foto untuk item.'
+        message: 'Jumlah file melebihi batas. Maksimal 5 foto item.'
       });
     }
     

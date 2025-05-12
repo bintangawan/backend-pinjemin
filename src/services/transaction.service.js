@@ -126,7 +126,7 @@ class TransactionService {
       
       // Validasi perubahan status
       const validStatusTransitions = {
-        pending: ['ongoing', 'cancelled'],
+        pending: ['ongoing', 'cancelled', 'completed'],
         ongoing: ['completed', 'returned', 'late'],
         returned: ['completed'],
         late: ['completed'],

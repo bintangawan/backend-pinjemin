@@ -8,10 +8,9 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const itemRoutes = require('./routes/item.routes');
-const itemPhotoRoutes = require('./routes/itemPhoto.routes');
 const transactionRoutes = require('./routes/transaction.routes');
 const reviewRoutes = require('./routes/review.routes');
-const messageRoutes = require('./routes/message.routes'); // Tambahkan import route message
+const messageRoutes = require('./routes/message.routes');
 const notificationRoutes = require('./routes/notification.routes');
 // Import middlewares
 const errorMiddleware = require('./middlewares/error.middleware');
@@ -29,7 +28,6 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded request bo
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/items', itemRoutes);
-app.use('/api/item-photos', itemPhotoRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/messages', messageRoutes);

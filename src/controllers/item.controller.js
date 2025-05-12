@@ -1,6 +1,5 @@
 const { validationResult } = require('express-validator');
 const ItemModel = require('../models/item.model');
-const ItemPhotoModel = require('../models/itemPhoto.model');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios'); // Tambahkan import axios
@@ -154,6 +153,18 @@ exports.createItem = async (req, res, next) => {
       }
     }
     
+    // Siapkan thumbnail dan photos
+    let thumbnail = null;
+    let photoUrls = [];
+    
+    if (req.files && req.files.length > 0) {
+      // Gunakan file pertama sebagai thumbnail
+      thumbnail = `/uploads/items/${req.files[0].filename}`;
+      
+      // Gunakan semua file sebagai photos
+      photoUrls = req.files.map(file => `/uploads/items/${file.filename}`);
+    }
+    
     // Buat item baru
     const itemData = {
       user_id: userId,
@@ -168,24 +179,12 @@ exports.createItem = async (req, res, next) => {
       province_id,
       province_name,
       city_id,
-      city_name
+      city_name,
+      thumbnail,
+      photos: photoUrls
     };
     
     const newItem = await ItemModel.create(itemData);
-    
-    // Jika ada file yang diupload, simpan foto-foto
-    if (req.files && req.files.length > 0) {
-      const photoUrls = req.files.map(file => `/uploads/items/${file.filename}`);
-      await ItemPhotoModel.createMany(newItem.id, photoUrls);
-      
-      // Ambil item dengan foto yang baru ditambahkan
-      const itemWithPhotos = await ItemModel.findById(newItem.id);
-      
-      return res.status(201).json({
-        status: 'success',
-        data: itemWithPhotos
-      });
-    }
     
     res.status(201).json({
       status: 'success',
@@ -234,6 +233,15 @@ exports.updateItem = async (req, res, next) => {
     
     // Cek apakah pengguna adalah pemilik item
     if (existingItem.user_id !== req.user.id) {
+      // Hapus file yang sudah diupload jika ada
+      if (req.files && req.files.length > 0) {
+        req.files.forEach(file => {
+          fs.unlink(path.join(__dirname, '../../uploads/items', file.filename), err => {
+            if (err) console.error('Error menghapus file:', err);
+          });
+        });
+      }
+      
       return res.status(403).json({
         status: 'error',
         message: 'Anda tidak memiliki izin untuk memperbarui item ini'
@@ -294,6 +302,29 @@ exports.updateItem = async (req, res, next) => {
     if (city_name !== undefined) updateData.city_name = city_name;
     if (city_id !== undefined) updateData.city_id = city_id;
     
+    // Jika ada file yang diupload, perbarui foto
+    if (req.files && req.files.length > 0) {
+      const photoUrls = req.files.map(file => `/uploads/items/${file.filename}`);
+      
+      // Hapus foto lama dari sistem file
+      if (existingItem.photos && existingItem.photos.length > 0) {
+        for (const photoUrl of existingItem.photos) {
+          const filePath = path.join(__dirname, '../..', photoUrl);
+          fs.unlink(filePath, err => {
+            if (err && err.code !== 'ENOENT') {
+              console.error('Error menghapus file:', err);
+            }
+          });
+        }
+      }
+      
+      // Perbarui thumbnail jika belum ada atau jika ingin menggantinya
+      updateData.thumbnail = photoUrls[0];
+      
+      // Perbarui photos
+      updateData.photos = photoUrls;
+    }
+    
     // Update item
     const updatedItem = await ItemModel.update(id, updateData);
     
@@ -331,18 +362,26 @@ exports.deleteItem = async (req, res, next) => {
       });
     }
     
-    // Ambil semua foto item
-    const photos = await ItemPhotoModel.findByItemId(id);
-    
     // Hapus file foto dari sistem file
-    photos.forEach(photo => {
-      const filePath = path.join(__dirname, '../..', photo.photo_url);
-      fs.unlink(filePath, err => {
+    if (existingItem.thumbnail) {
+      const thumbnailPath = path.join(__dirname, '../..', existingItem.thumbnail);
+      fs.unlink(thumbnailPath, err => {
         if (err && err.code !== 'ENOENT') {
-          console.error('Error menghapus file:', err);
+          console.error('Error menghapus thumbnail:', err);
         }
       });
-    });
+    }
+    
+    if (existingItem.photos && existingItem.photos.length > 0) {
+      for (const photoUrl of existingItem.photos) {
+        const filePath = path.join(__dirname, '../..', photoUrl);
+        fs.unlink(filePath, err => {
+          if (err && err.code !== 'ENOENT') {
+            console.error('Error menghapus file foto:', err);
+          }
+        });
+      }
+    }
     
     // Hapus item dari database
     await ItemModel.delete(id);

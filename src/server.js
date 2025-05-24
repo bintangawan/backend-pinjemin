@@ -100,7 +100,7 @@ const startServer = async () => {
     }
 
     // Mulai server jika koneksi database berhasil
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server berjalan pada port ${PORT} dalam mode ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (error) {

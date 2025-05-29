@@ -254,7 +254,7 @@ static async findById(id) {
         queryParams
       );
       
-      const total = countResult[0].total;
+      const total = countResult && countResult[0] ? countResult[0].total : 0;
       
       // Add pagination
       const offset = (page - 1) * limit;

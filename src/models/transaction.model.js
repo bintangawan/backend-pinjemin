@@ -84,7 +84,7 @@ class TransactionModel {
       );
       
       // Pastikan countResult[0] ada sebelum mengakses total
-      const total = countResult && countResult[0] ? countResult[0].total : 0;
+      const total = countResult && countResult.length > 0 ? countResult[0].total : 0;
       
       // Add pagination
       const offset = (page - 1) * limit;
@@ -154,7 +154,7 @@ class TransactionModel {
         queryParams
       );
       
-      const total = countResult[0].total;
+      const total = countResult && countResult[0] ? countResult[0].total : 0;
       
       // Add pagination
       const offset = (page - 1) * limit;

@@ -34,7 +34,12 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // Serve static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+  setHeaders: (res) => {
+    res.set('Access-Control-Allow-Origin', 'http://localhost:8080');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 // Serve static files from public folder
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

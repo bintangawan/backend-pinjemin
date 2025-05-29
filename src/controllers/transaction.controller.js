@@ -258,6 +258,7 @@ exports.getSellerTransactions = async (req, res, next) => {
       pagination: result.pagination
     });
   } catch (error) {
+    console.error('Error in getSellerTransactions controller:', error);
     next(error);
   }
 };

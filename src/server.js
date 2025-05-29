@@ -12,7 +12,7 @@ const server = http.createServer(app);
 // Inisialisasi Socket.io
 const io = socketIo(server, {
   cors: {
-    origin: '*', // Ganti dengan domain frontend Anda di production
+    origin: 'http://localhost:8080', // Ganti dengan domain frontend Anda di production
     methods: ['GET', 'POST']
   }
 });

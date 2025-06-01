@@ -54,7 +54,7 @@ exports.getAllItems = async (req, res, next) => {
     const { 
       name, category_id, user_id, status, 
       is_available_for_rent, is_available_for_sell,
-      page = 1, limit = 10 
+      page = 1, limit = 20 
     } = req.query;
     
     const filters = {
@@ -185,7 +185,6 @@ exports.createItem = async (req, res, next) => {
     };
     
     const newItem = await ItemModel.create(itemData);
-    
     res.status(201).json({
       status: 'success',
       data: newItem
@@ -401,7 +400,7 @@ exports.deleteItem = async (req, res, next) => {
 exports.getMyItems = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 20 } = req.query;
     
     const result = await ItemModel.findAll({ user_id: userId }, page, limit);
     

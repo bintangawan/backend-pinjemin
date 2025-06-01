@@ -30,7 +30,7 @@ io.use(async (socket, next) => {
     
     // Periksa apakah pengguna masih ada
     const [user] = await pool.query(
-      'SELECT id, name, email FROM users WHERE id = ?',
+      'SELECT id, name, email, province_id FROM users WHERE id = ?',
       [decoded.id]
     );
     
@@ -55,6 +55,13 @@ io.on('connection', (socket) => {
     socket.join(`transaction_${transactionId}`);
     console.log(`User ${socket.user.id} joined transaction room ${transactionId}`);
   });
+
+  // Join community room
+  socket.on('joinCommunity', () => {
+    const provinceRoom = `community_${socket.user.province_id}`;
+    socket.join(provinceRoom);
+    console.log(`User ${socket.user.id} joined community room ${provinceRoom}`);
+  });
   
   // Mengirim pesan
   socket.on('sendMessage', async (data) => {
@@ -74,6 +81,25 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Error sending message:', error);
       socket.emit('messageError', { error: error.message });
+    }
+  });
+
+  // Send community message
+  socket.on('sendCommunityMessage', async (data) => {
+    try {
+      const { content } = data;
+      const messageCommunityController = require('./controllers/messagecommunity.controller');
+
+      const newMessage = await messageCommunityController.sendMessageSocket({
+        sender_id: socket.user.id,
+        province_id: socket.user.province_id,
+        content
+      });
+
+      io.to(`community_${socket.user.province_id}`).emit('newCommunityMessage', newMessage);
+    } catch (error) {
+      console.error('Error sending community message:', error);
+      socket.emit('communityMessageError', { error: error.message });
     }
   });
   

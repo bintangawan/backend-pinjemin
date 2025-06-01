@@ -162,53 +162,55 @@ class ItemModel {
   }
 
   /**
- * Mendapatkan item berdasarkan ID
- * @param {number} id - ID item
- * @returns {Promise<Object|null>} - Data item atau null jika tidak ditemukan
- */
-static async findById(id) {
-  try {
-    const [rows] = await pool.query(
-      `SELECT i.*, 
-        u.name as owner_name, 
-        u.email as owner_email,
-        c.name as category_name
-      FROM items i
-      LEFT JOIN users u ON i.user_id = u.id
-      LEFT JOIN categories c ON i.category_id = c.id
-      WHERE i.id = ?`,
-      [id]
-    );
-    
-    if (rows.length === 0) return null;
-    
-    // Format photos as array if exists
-    const item = rows[0];
-    if (item.photos) {
-      item.photos = item.photos.split(',');
-    } else {
-      item.photos = [];
-    }
-    
-    return item;
-  } catch (error) {
-    throw error;
-  }
-}
-
-/**
- * Mendapatkan semua item dengan filter opsional
- * @param {Object} filters - Filter untuk pencarian
- * @param {number} page - Nomor halaman
- * @param {number} limit - Jumlah item per halaman
- * @returns {Promise<Object>} - Data item dan metadata paginasi
- */
-  static async findAll(filters = {}, page = 1, limit = 10) {
+   * Mendapatkan item berdasarkan ID
+   * @param {number} id - ID item
+   * @returns {Promise<Object|null>} - Data item atau null jika tidak ditemukan
+   */
+  static async findById(id) {
     try {
-      let query = `
-        SELECT i.*, 
+      const [rows] = await pool.query(
+        `SELECT i.*, 
           u.name as owner_name, 
+          u.email as owner_email,
           c.name as category_name
+        FROM items i
+        LEFT JOIN users u ON i.user_id = u.id
+        LEFT JOIN categories c ON i.category_id = c.id
+        WHERE i.id = ?`,
+        [id]
+      );
+      
+      if (rows.length === 0) return null;
+      
+      // Format photos as array if exists
+      const item = rows[0];
+      if (item.photos) {
+        item.photos = item.photos.split(',');
+      } else {
+        item.photos = [];
+      }
+      
+      return item;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Mendapatkan semua item dengan filter opsional
+   * @param {Object} filters - Filter untuk pencarian
+   * @param {number} page - Nomor halaman
+   * @param {number} limit - Jumlah item per halaman
+   * @returns {Promise<Object>} - Data item dan metadata paginasi
+   */
+  static async findAll(filters = {}, page = 1, limit = 20) {
+    try {
+      // Parse page dan limit menjadi integer
+      const parsedPage = parseInt(page) || 1;
+      const parsedLimit = parseInt(limit) || 20;
+      
+      // Base query untuk SELECT items
+      let baseQuery = `
         FROM items i
         LEFT JOIN users u ON i.user_id = u.id
         LEFT JOIN categories c ON i.category_id = c.id
@@ -219,55 +221,58 @@ static async findById(id) {
       
       // Apply filters
       if (filters.name) {
-        query += ' AND i.name LIKE ?';
+        baseQuery += ' AND i.name LIKE ?';
         queryParams.push(`%${filters.name}%`);
       }
       
       if (filters.category_id) {
-        query += ' AND i.category_id = ?';
+        baseQuery += ' AND i.category_id = ?';
         queryParams.push(filters.category_id);
       }
       
       if (filters.user_id) {
-        query += ' AND i.user_id = ?';
+        baseQuery += ' AND i.user_id = ?';
         queryParams.push(filters.user_id);
       }
       
       if (filters.status) {
-        query += ' AND i.status = ?';
+        baseQuery += ' AND i.status = ?';
         queryParams.push(filters.status);
       }
       
       if (filters.is_available_for_rent !== undefined) {
-        query += ' AND i.is_available_for_rent = ?';
+        baseQuery += ' AND i.is_available_for_rent = ?';
         queryParams.push(filters.is_available_for_rent);
       }
       
       if (filters.is_available_for_sell !== undefined) {
-        query += ' AND i.is_available_for_sell = ?';
+        baseQuery += ' AND i.is_available_for_sell = ?';
         queryParams.push(filters.is_available_for_sell);
       }
       
       // Count total items for pagination
-      const [countResult] = await pool.query(
-        query.replace('SELECT i.*, u.name as owner_name, c.name as category_name', 'SELECT COUNT(*) as total'),
-        queryParams
-      );
+      const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
+      const [countResult] = await pool.query(countQuery, queryParams);
       
-      const total = countResult && countResult[0] ? countResult[0].total : 0;
+      // Pastikan total adalah number yang valid
+      const total = countResult[0]?.total || 0;
       
-      // Add pagination
-      const offset = (page - 1) * limit;
-      query += ' ORDER BY i.created_at DESC LIMIT ? OFFSET ?';
+      // Calculate pagination
+      const totalPages = Math.ceil(total / parsedLimit);
+      const offset = (parsedPage - 1) * parsedLimit;
       
-      // Pastikan limit dan offset adalah angka yang valid
-      const parsedLimit = parseInt(limit) || 10; // Default ke 10 jika parsing gagal
-      const parsedOffset = parseInt(offset) || 0; // Default ke 0 jika parsing gagal
-      
-      queryParams.push(parsedLimit, parsedOffset);
+      // Query untuk mendapatkan data items
+      const itemsQuery = `
+        SELECT i.*, 
+          u.name as owner_name, 
+          c.name as category_name
+        ${baseQuery}
+        ORDER BY i.created_at DESC 
+        LIMIT ? OFFSET ?
+      `;
       
       // Execute query with pagination
-      const [rows] = await pool.query(query, queryParams);
+      const [rows] = await pool.query(itemsQuery, [...queryParams, parsedLimit, offset]);
       
       // Format photos as array for each item
       rows.forEach(item => {
@@ -281,13 +286,14 @@ static async findById(id) {
       return {
         items: rows,
         pagination: {
-          total,
-          page: parseInt(page) || 1,
+          total: total,
+          page: parsedPage,
           limit: parsedLimit,
-          totalPages: Math.ceil(total / parsedLimit)
+          totalPages: totalPages
         }
       };
     } catch (error) {
+      console.error('Error in findAll:', error);
       throw error;
     }
   }

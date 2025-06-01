@@ -12,6 +12,7 @@ const transactionRoutes = require('./routes/transaction.routes');
 const reviewRoutes = require('./routes/review.routes');
 const messageRoutes = require('./routes/message.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const messageCommunityRoutes = require('./routes/messagecommunity.routes');
 // Import middlewares
 const errorMiddleware = require('./middlewares/error.middleware');
 
@@ -32,6 +33,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/community-messages', messageCommunityRoutes);
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {

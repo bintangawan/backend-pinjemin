@@ -84,7 +84,11 @@ exports.sendMessage = async (req, res, next) => {
     }
 
     const notificationController = require('./notification.controller');
-    await notificationController.createMessageNotification(newMessage);
+    const notification = await notificationController.createMessageNotification(newMessage);
+
+    if (notification) {
+      console.log('Created message notification');
+    }
 
     res.status(201).json({
       status: 'success',

@@ -11,8 +11,14 @@ router.use(authMiddleware.protect);
 // Route untuk mendapatkan semua notifikasi pengguna
 router.get('/', notificationController.getUserNotifications);
 
+// Route untuk mendapatkan jumlah notifikasi yang belum dibaca
+router.get('/unread-count', notificationController.getUnreadCount);
+
 // Route untuk menandai semua notifikasi sebagai telah dibaca
 router.patch('/read-all', notificationController.markAllAsRead);
+
+// Route untuk mengecek status subscription pengguna
+router.get('/subscription-status', notificationController.getSubscriptionStatus);
 
 // Route untuk menandai notifikasi sebagai telah dibaca
 router.patch('/:id/read', notificationController.markAsRead);
@@ -27,6 +33,10 @@ router.post('/subscribe', [
   body('keys.p256dh').notEmpty().withMessage('Key p256dh tidak boleh kosong'),
   body('keys.auth').notEmpty().withMessage('Key auth tidak boleh kosong')
 ], notificationController.saveSubscription);
+
+// Route untuk unsubscribe dari push notification
+router.post('/unsubscribe', notificationController.unsubscribe);
+
 
 // Route untuk mendapatkan VAPID public key
 router.get('/vapid-public-key', notificationController.getVapidPublicKey);

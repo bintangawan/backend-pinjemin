@@ -5,16 +5,17 @@ const NotificationModel = require('../models/notification.model');
 const TransactionModel = require('../models/transaction.model');
 const ItemModel = require('../models/item.model');
 const UserModel = require('../models/user.model');
+require('dotenv').config();
 
 // TODO: Ganti dengan VAPID keys yang sebenarnya
 const vapidKeys = {
-  publicKey: 'BPO-IPD42nX4i4zBiZKfCD1ab_zidEjSry6bs9FRrHjGkWKNkpH6lGB9tyJqIhXnKIXii63Hyka_8P2xu4yg1g0',
-  privateKey: 'W7NAOpMRO7YsD1eWdbnl-e59TL-JeiDf1mHbdsfksFk'
+  publicKey: process.env.VAPID_PUBLIC_KEY,
+  privateKey: process.env.VAPID_PRIVATE_KEY
 };
 
 // Konfigurasi web-push
 webpush.setVapidDetails(
-  'mailto:infopinjemin@gmail.com', // Ganti dengan email kontak
+  process.env.VAPID_SUBJECT,
   vapidKeys.publicKey,
   vapidKeys.privateKey
 );
@@ -25,14 +26,19 @@ webpush.setVapidDetails(
 exports.getUserNotifications = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, type } = req.query;
     
     const result = await NotificationModel.findByUserId(userId, page, limit);
+    const unreadCount = await NotificationModel.getUnreadCount(userId);
     
     res.status(200).json({
       status: 'success',
-      data: result.notifications,
-      pagination: result.pagination
+      message: 'Notifikasi berhasil diambil',
+      data: {
+        notifications: result.notifications,
+        unread_count: unreadCount,
+        pagination: result.pagination
+      }
     });
   } catch (error) {
     next(error);
@@ -56,9 +62,14 @@ exports.markAsRead = async (req, res, next) => {
       });
     }
     
+    const unreadCount = await NotificationModel.getUnreadCount(userId);
+    
     res.status(200).json({
       status: 'success',
-      message: 'Notifikasi telah ditandai sebagai dibaca'
+      message: 'Notifikasi telah ditandai sebagai dibaca',
+      data: {
+        unread_count: unreadCount
+      }
     });
   } catch (error) {
     next(error);
@@ -76,7 +87,10 @@ exports.markAllAsRead = async (req, res, next) => {
     
     res.status(200).json({
       status: 'success',
-      message: 'Semua notifikasi telah ditandai sebagai dibaca'
+      message: 'Semua notifikasi telah ditandai sebagai dibaca',
+      data: {
+        unread_count: 0
+      }
     });
   } catch (error) {
     next(error);
@@ -166,6 +180,32 @@ exports.saveSubscription = async (req, res, next) => {
 };
 
 /**
+ * Controller untuk unsubscribe dari push notification
+ */
+exports.unsubscribe = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await NotificationModel.removePushSubscription(userId);
+
+    if (!result) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Gagal melakukan unsubscribe'
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Berhasil berhenti berlangganan push notification'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+/**
  * Fungsi untuk mengirim notifikasi push ke pengguna
  * @param {number} userId - ID pengguna
  * @param {string} title - Judul notifikasi
@@ -180,20 +220,36 @@ async function sendPushNotification(userId, title, body, data = {}) {
       console.log(`User ${userId} tidak memiliki subscription untuk push notification`);
       return false;
     }
+
     // Pastikan endpoint tidak mengandung karakter backtick
     if (subscription.endpoint) {
       subscription.endpoint = subscription.endpoint.replace(/`/g, '').trim();
     }
+
     const payload = JSON.stringify({
       title,
       body,
       data,
-      icon: '/logo.png', // Path ke icon notifikasi
-      badge: '/badge.png', // Path ke badge notifikasi
+      icon: '/logo.png',
+      badge: '/badge.png',
     });
     
-    await webpush.sendNotification(subscription, payload);
-    return true;
+    try {
+  await webpush.sendNotification(subscription, payload);
+  return true;
+} catch (error) {
+  console.error('Error sending push notification:', error);
+
+  // ❗ Auto-remove expired or invalid subscription
+  const expiredStatusCodes = [404, 410];
+  if (error.statusCode && expiredStatusCodes.includes(error.statusCode)) {
+    console.warn(`Subscription for user ${userId} is expired. Removing from database...`);
+    await NotificationModel.removePushSubscription(userId);
+  }
+
+  return false;
+}
+
   } catch (error) {
     console.error('Error sending push notification:', error);
     return false;
@@ -213,28 +269,45 @@ exports.createTransactionNotification = async (transaction) => {
     // Dapatkan data pembeli
     const buyer = await UserModel.findById(transaction.buyer_id);
     if (!buyer) return null;
+
+    // Dapatkan data penjual
+    const seller = await UserModel.findById(item.user_id);
+    if (!seller) return null;
     
-    // Buat notifikasi untuk pemilik item
-    const notification = await NotificationModel.createTransactionNotification(
-      item.user_id, // seller ID
+    // Buat notifikasi untuk buyer dan seller
+    const notifications = await NotificationModel.createTransactionNotifications(
       transaction,
       item,
-      buyer
+      buyer,
+      seller
     );
 
-    // Kirim push notification
+    // Kirim push notification ke seller
     const transactionType = transaction.type === 'rent' ? 'Penyewaan' : 'Pembelian';
     await sendPushNotification(
-      item.user_id,
+      seller.id,
       `${transactionType} Baru`,
       `${buyer.name} melakukan ${transactionType.toLowerCase()} untuk item "${item.name}"`,
       {
         type: 'transaction',
-        transactionId: transaction.id
+        transactionId: transaction.id,
+        userId: buyer.id
+      }
+    );
+
+    // Kirim push notification ke buyer
+    await sendPushNotification(
+      buyer.id,
+      `Transaksi ${transactionType} Berhasil`,
+      `Transaksi ${transactionType.toLowerCase()} untuk "${item.name}" berhasil dibuat`,
+      {
+        type: 'transaction',
+        transactionId: transaction.id,
+        userId: seller.id
       }
     );
     
-    return notification;
+    return notifications;
   } catch (error) {
     console.error('Error creating transaction notification:', error);
     return null;
@@ -255,7 +328,8 @@ exports.createMessageNotification = async (message) => {
     const notification = await NotificationModel.createMessageNotification(
       message.receiver_id,
       sender,
-      message.content
+      message.content,
+      message.id
     );
 
     // Kirim push notification
@@ -282,53 +356,89 @@ exports.createMessageNotification = async (message) => {
 };
 
 /**
- * Fungsi untuk memeriksa dan membuat notifikasi jatuh tempo sewa
- * Dipanggil dari cron job di server.js
+ * Fungsi untuk mengirim reminder notifications yang dijadwalkan
+ * Dipanggil dari cron job setiap hari jam 8 pagi
  */
-exports.checkRentDueNotifications = async () => {
+exports.sendScheduledReminders = async () => {
   try {
-    // Dapatkan semua transaksi sewa yang masih berlangsung
-    const [transactions] = await TransactionModel.findOngoingRentals();
-    
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowDate = tomorrow.toISOString().split('T')[0];
-    
-    // Filter transaksi yang berakhir besok
-    const dueTransactions = transactions.filter(transaction => {
-      const endDate = new Date(transaction.rent_end_date).toISOString().split('T')[0];
-      return endDate === tomorrowDate;
-    });
-    
-    // Buat notifikasi untuk setiap transaksi yang akan jatuh tempo
-    for (const transaction of dueTransactions) {
-      const item = await ItemModel.findById(transaction.item_id);
-      if (item) {
-        // Buat notifikasi di database
-        const notification = await NotificationModel.createRentDueNotification(
-          transaction.buyer_id,
-          transaction,
-          item
-        );
+    const reminders = await NotificationModel.getTodayReminders();
+    let sentCount = 0;
 
-        // Kirim push notification
-        await sendPushNotification(
-          transaction.buyer_id,
-          'Pengingat Jatuh Tempo Sewa',
-          `Masa sewa untuk "${item.name}" akan berakhir besok. Harap segera kembalikan item atau perpanjang masa sewa.`,
-          {
-            type: 'rent_due',
-            transactionId: transaction.id,
-            itemId: item.id
-          }
-        );
+    for (const reminder of reminders) {
+      // Kirim push notification
+      const success = await sendPushNotification(
+        reminder.user_id,
+        'Pengingat Jatuh Tempo Sewa',
+        reminder.message,
+        {
+          type: 'rent_reminder',
+          transactionId: reminder.transaction_id,
+          reminderDay: reminder.reminder_day
+        }
+      );
+
+      if (success) {
+        sentCount++;
       }
+
+      // Mark notification as read setelah dikirim
+      await NotificationModel.markAsRead(reminder.id, reminder.user_id);
     }
-    
-    return dueTransactions.length;
+
+    console.log(`Sent ${sentCount} scheduled reminders out of ${reminders.length} total reminders`);
+    return sentCount;
   } catch (error) {
-    console.error('Error checking rent due notifications:', error);
+    console.error('Error sending scheduled reminders:', error);
     return 0;
+  }
+};
+
+/**
+ * Controller untuk mengecek status subscription pengguna
+ */
+/**
+ * Controller untuk mengecek status subscription pengguna
+ */
+exports.getSubscriptionStatus = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    
+    // Dapatkan subscription dari database
+    const subscription = await NotificationModel.getUserPushSubscription(userId);
+    
+    if (!subscription) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'Status subscription berhasil diambil',
+        data: {
+          hasSubscription: false,
+          isActive: false,
+          subscription: null
+        }
+      });
+    }
+
+    // Cek apakah subscription masih valid (memiliki endpoint dan keys)
+    const isActive = !!(
+      subscription.endpoint && 
+      subscription.keys && 
+      subscription.keys.p256dh && 
+      subscription.keys.auth
+    );
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Status subscription berhasil diambil',
+      data: {
+        hasSubscription: true,
+        isActive: isActive,
+        subscription: {
+          endpoint: subscription.endpoint
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -339,9 +449,88 @@ exports.getVapidPublicKey = async (req, res, next) => {
   try {
     res.status(200).json({
       status: 'success',
-      publicKey: vapidKeys.publicKey
+      message: 'VAPID public key berhasil diambil',
+      data: {
+        publicKey: vapidKeys.publicKey
+      }
     });
   } catch (error) {
     next(error);
   }
 };
+
+/**
+ * Controller untuk mendapatkan jumlah notifikasi yang belum dibaca
+ */
+exports.getUnreadCount = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const unreadCount = await NotificationModel.getUnreadCount(userId);
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Jumlah notifikasi yang belum dibaca berhasil diambil',
+      data: {
+        unread_count: unreadCount
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Fungsi untuk memeriksa dan membuat notifikasi untuk transaksi yang akan jatuh tempo
+ * Dipanggil dari cron job setiap hari jam 8 pagi
+ */
+exports.checkRentDueNotifications = async () => {
+  try {
+    // ✅ Dapatkan tanggal hari ini
+    const today = new Date().toISOString().split('T')[0];
+    
+    // ✅ Ambil reminder yang dijadwalkan untuk hari ini
+    const [reminders] = await pool.query(
+      `SELECT n.* 
+       FROM notifications n
+       WHERE n.type = 'rent_reminder' 
+       AND n.scheduled_date = ? 
+       AND n.is_read = 0`,
+      [today]
+    );
+    
+    console.log(`Found ${reminders.length} reminders scheduled for today (${today})`);
+    
+    // ✅ Kirim reminder yang dijadwalkan untuk hari ini
+    let sentCount = 0;
+    for (const reminder of reminders) {
+      try {
+        // Kirim push notification
+        const success = await sendPushNotification(
+          reminder.user_id,
+          'Pengingat Jatuh Tempo Sewa',
+          reminder.message,
+          {
+            type: 'rent_reminder',
+            transactionId: reminder.transaction_id,
+            reminderDay: reminder.reminder_day
+          }
+        );
+        
+        if (success) {
+          sentCount++;
+          console.log(`Successfully sent reminder ${reminder.id} to user ${reminder.user_id}`);
+        }
+      } catch (error) {
+        console.error(`Error sending reminder ${reminder.id}:`, error);
+      }
+    }
+    
+    console.log(`Sent ${sentCount} rent due reminders out of ${reminders.length} total reminders`);
+    return sentCount;
+  } catch (error) {
+    console.error('Error checking rent due notifications:', error);
+    return 0;
+  }
+};
+
+module.exports = exports;

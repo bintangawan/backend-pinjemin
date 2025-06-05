@@ -43,15 +43,21 @@ class NotificationModel {
       const offset = (page - 1) * limit;
       
       // Pastikan limit dan offset adalah angka yang valid
-      const parsedLimit = parseInt(limit) || 10; // Default ke 10 jika parsing gagal
-      const parsedOffset = parseInt(offset) || 0; // Default ke 0 jika parsing gagal
+      const parsedLimit = parseInt(limit) || 10;
+      const parsedOffset = parseInt(offset) || 0;
       
       // Get notifications with pagination
       const [rows] = await pool.query(
-        `SELECT * FROM notifications 
-        WHERE user_id = ? 
-        ORDER BY created_at DESC 
-        LIMIT ? OFFSET ?`,
+        `SELECT n.*, 
+                CASE 
+                  WHEN n.related_user_id IS NOT NULL THEN u.name 
+                  ELSE NULL 
+                END as related_user_name
+         FROM notifications n
+         LEFT JOIN users u ON n.related_user_id = u.id
+         WHERE n.user_id = ? 
+         ORDER BY n.created_at DESC 
+         LIMIT ? OFFSET ?`,
         [userId, parsedLimit, parsedOffset]
       );
       
@@ -76,11 +82,21 @@ class NotificationModel {
    */
   static async create(notificationData) {
     try {
-      const { user_id, message } = notificationData;
+      const { 
+        user_id, 
+        message, 
+        type = 'transaction', 
+        transaction_id = null, 
+        related_user_id = null,
+        scheduled_date = null,
+        reminder_day = 0
+      } = notificationData;
       
       const [result] = await pool.query(
-        'INSERT INTO notifications (user_id, message) VALUES (?, ?)',
-        [user_id, message]
+        `INSERT INTO notifications 
+         (user_id, message, type, transaction_id, related_user_id, scheduled_date, reminder_day) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [user_id, message, type, transaction_id, related_user_id, scheduled_date, reminder_day]
       );
       
       return this.findById(result.insertId);
@@ -146,35 +162,111 @@ class NotificationModel {
   }
 
   /**
-   * Membuat notifikasi transaksi baru
-   * @param {number} sellerId - ID penjual/pemilik item
+   * Membuat notifikasi transaksi untuk buyer dan seller
    * @param {Object} transaction - Data transaksi
    * @param {Object} item - Data item
    * @param {Object} buyer - Data pembeli
-   * @returns {Promise<Object>} - Data notifikasi yang dibuat
+   * @param {Object} seller - Data penjual
+   * @returns {Promise<Array>} - Array notifikasi yang dibuat
    */
-  static async createTransactionNotification(sellerId, transaction, item, buyer) {
+  static async createTransactionNotifications(transaction, item, buyer, seller) {
     try {
       const transactionType = transaction.type === 'rent' ? 'penyewaan' : 'pembelian';
-      const message = `${buyer.name} melakukan ${transactionType} untuk item "${item.name}" dengan harga ${transaction.total_price}`;
-      
-      return this.create({
-        user_id: sellerId,
-        message
+      const notifications = [];
+
+      // Notifikasi untuk seller
+      const sellerMessage = `${buyer.name} melakukan ${transactionType} untuk item "${item.name}" dengan total ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(transaction.total_price)}`;
+      const sellerNotification = await this.create({
+        user_id: seller.id,
+        message: sellerMessage,
+        type: 'transaction',
+        transaction_id: transaction.id,
+        related_user_id: buyer.id
       });
+      notifications.push(sellerNotification);
+
+      // Notifikasi untuk buyer
+      const buyerMessage = `Transaksi ${transactionType} untuk item "${item.name}" berhasil dibuat dengan total ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(transaction.total_price)}`;
+      const buyerNotification = await this.create({
+        user_id: buyer.id,
+        message: buyerMessage,
+        type: 'transaction',
+        transaction_id: transaction.id,
+        related_user_id: seller.id
+      });
+      notifications.push(buyerNotification);
+
+      // Jika transaksi adalah rental, buat reminder notifications
+      if (transaction.type === 'rent' && transaction.rent_end_date) {
+        await this.createRentReminders(transaction, item, buyer);
+      }
+
+      return notifications;
     } catch (error) {
       throw error;
     }
   }
 
   /**
+   * Membuat reminder notifications untuk rental (3 hari berturut-turut)
+   * @param {Object} transaction - Data transaksi
+   * @param {Object} item - Data item
+   * @param {Object} buyer - Data pembeli
+   */
+  static async createRentReminders(transaction, item, buyer) {
+  try {
+    const endDate = new Date(transaction.rent_end_date);
+    const startDate = new Date(transaction.rent_start_date);
+    
+    // ✅ Hitung durasi sewa dalam hari
+    const rentalDurationMs = endDate.getTime() - startDate.getTime();
+    const rentalDurationDays = Math.ceil(rentalDurationMs / (1000 * 60 * 60 * 24));
+    
+    // ✅ Tentukan berapa hari reminder yang akan dibuat berdasarkan durasi sewa
+    // Jika sewa 1 hari, buat 1 reminder. Jika 2 hari, buat 2 reminder. Jika 3+ hari, buat 3 reminder.
+    const reminderDays = Math.min(rentalDurationDays, 3);
+    
+    // ✅ Hanya buat reminder untuk hari yang valid (tidak di masa lalu)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let i = reminderDays; i >= 1; i--) {
+      const reminderDate = new Date(endDate);
+      reminderDate.setDate(endDate.getDate() - i);
+      
+      // ✅ Lewati reminder yang jatuh pada masa lalu
+      if (reminderDate < today) {
+        console.log(`Skipping past reminder for transaction ${transaction.id}, day ${i}`);
+        continue;
+      }
+      
+      const dayText = i === 1 ? 'besok' : `${i} hari lagi`;
+      const message = `Pengingat: Masa sewa untuk "${item.name}" akan berakhir ${dayText}. Harap segera kembalikan item atau perpanjang masa sewa.`;
+      
+      await this.create({
+        user_id: buyer.id,
+        message: message,
+        type: 'rent_reminder',
+        transaction_id: transaction.id,
+        related_user_id: null,
+        scheduled_date: reminderDate.toISOString().split('T')[0],
+        reminder_day: 4 - i // 1, 2, 3
+      });
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
+  /**
    * Membuat notifikasi pesan baru
    * @param {number} receiverId - ID penerima pesan
    * @param {Object} sender - Data pengirim pesan
    * @param {string} messageContent - Isi pesan
+   * @param {number} messageId - ID pesan
    * @returns {Promise<Object>} - Data notifikasi yang dibuat
    */
-  static async createMessageNotification(receiverId, sender, messageContent) {
+  static async createMessageNotification(receiverId, sender, messageContent, messageId) {
     try {
       // Potong pesan jika terlalu panjang
       const shortMessage = messageContent.length > 50 
@@ -185,7 +277,10 @@ class NotificationModel {
       
       return this.create({
         user_id: receiverId,
-        message
+        message: message,
+        type: 'message',
+        transaction_id: null,
+        related_user_id: sender.id
       });
     } catch (error) {
       throw error;
@@ -193,20 +288,26 @@ class NotificationModel {
   }
 
   /**
-   * Membuat notifikasi pengingat jatuh tempo sewa
-   * @param {number} buyerId - ID penyewa
-   * @param {Object} transaction - Data transaksi
-   * @param {Object} item - Data item
-   * @returns {Promise<Object>} - Data notifikasi yang dibuat
+   * Mendapatkan reminder notifications yang harus dikirim hari ini
+   * @returns {Promise<Array>} - Array notifikasi reminder
    */
-  static async createRentDueNotification(buyerId, transaction, item) {
+  static async getTodayReminders() {
     try {
-      const message = `Masa sewa untuk "${item.name}" akan berakhir besok. Harap segera kembalikan item atau perpanjang masa sewa.`;
+      const today = new Date().toISOString().split('T')[0];
       
-      return this.create({
-        user_id: buyerId,
-        message
-      });
+      const [rows] = await pool.query(
+        `SELECT n.*, u.name as user_name, i.name as item_name
+         FROM notifications n
+         JOIN users u ON n.user_id = u.id
+         JOIN transactions t ON n.transaction_id = t.id
+         JOIN items i ON t.item_id = i.id
+         WHERE n.type = 'rent_reminder' 
+         AND n.scheduled_date = ? 
+         AND n.is_read = 0`,
+        [today]
+      );
+      
+      return rows;
     } catch (error) {
       throw error;
     }
@@ -248,6 +349,42 @@ class NotificationModel {
       );
       
       return result.affectedRows > 0;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+ * Menghapus subscription push notification pengguna
+ * @param {number} userId - ID pengguna
+ * @returns {Promise<boolean>} - true jika berhasil
+ */
+  static async removePushSubscription(userId) {
+    try {
+      const [result] = await pool.query(
+        'UPDATE users SET push_subscription = NULL WHERE id = ?',
+        [userId]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
+  /**
+   * Mendapatkan jumlah notifikasi yang belum dibaca
+   * @param {number} userId - ID pengguna
+   * @returns {Promise<number>} - Jumlah notifikasi yang belum dibaca
+   */
+  static async getUnreadCount(userId) {
+    try {
+      const [rows] = await pool.query(
+        'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
+        [userId]
+      );
+      
+      return rows[0].count;
     } catch (error) {
       throw error;
     }

@@ -1,4 +1,4 @@
-const { pool } = require('../config/db');
+const { pool } = require("../config/db")
 
 /**
  * Model untuk mengelola data item
@@ -25,41 +25,46 @@ class ItemModel {
         province_name,
         city_id,
         city_name,
+        latitude,
+        longitude,
         thumbnail,
-        photos
-      } = itemData;
-      
+        photos,
+      } = itemData
+
       // Konversi array photos menjadi string yang dipisahkan koma
-      const photosString = photos && photos.length > 0 ? photos.join(',') : null;
-      
+      const photosString = photos && photos.length > 0 ? photos.join(",") : null
+
       const [result] = await pool.query(
         `INSERT INTO items (
           user_id, category_id, name, description, price_sell, price_rent, 
           is_available_for_sell, is_available_for_rent, deposit_amount,
-          province_id, province_name, city_id, city_name, thumbnail, photos
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          province_id, province_name, city_id, city_name, latitude, longitude,
+          thumbnail, photos
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          user_id, 
-          category_id || null, 
-          name, 
-          description || null, 
-          price_sell || null, 
-          price_rent || null, 
-          is_available_for_sell ? 1 : 0, 
-          is_available_for_rent ? 1 : 0, 
+          user_id,
+          category_id || null,
+          name,
+          description || null,
+          price_sell || null,
+          price_rent || null,
+          is_available_for_sell ? 1 : 0,
+          is_available_for_rent ? 1 : 0,
           deposit_amount || 0,
           province_id || null,
           province_name || null,
           city_id || null,
           city_name || null,
+          latitude || null,
+          longitude || null,
           thumbnail || null,
-          photosString
-        ]
-      );
-      
-      return this.findById(result.insertId);
+          photosString,
+        ],
+      )
+
+      return this.findById(result.insertId)
     } catch (error) {
-      throw error;
+      throw error
     }
   }
 
@@ -72,45 +77,55 @@ class ItemModel {
   static async update(id, updateData) {
     try {
       const allowedFields = [
-        'category_id', 'name', 'description', 'price_sell', 'price_rent',
-        'is_available_for_sell', 'is_available_for_rent', 'deposit_amount',
-        'status', 'province_id', 'province_name', 'city_id', 'city_name',
-        'thumbnail', 'photos'
-      ];
-      
-      const updateFields = [];
-      const queryParams = [];
-      
+        "category_id",
+        "name",
+        "description",
+        "price_sell",
+        "price_rent",
+        "is_available_for_sell",
+        "is_available_for_rent",
+        "deposit_amount",
+        "status",
+        "province_id",
+        "province_name",
+        "city_id",
+        "city_name",
+        "latitude",
+        "longitude",
+        "thumbnail",
+        "photos",
+      ]
+
+      const updateFields = []
+      const queryParams = []
+
       // Handle photos array conversion to comma-separated string
       if (updateData.photos && Array.isArray(updateData.photos)) {
-        updateData.photos = updateData.photos.join(',');
+        updateData.photos = updateData.photos.join(",")
       }
-      
+
       for (const [key, value] of Object.entries(updateData)) {
         if (allowedFields.includes(key)) {
-          updateFields.push(`${key} = ?`);
-          queryParams.push(value);
+          updateFields.push(`${key} = ?`)
+          queryParams.push(value)
         }
       }
-      
+
       if (updateFields.length === 0) {
-        return this.findById(id); // Tidak ada yang diupdate
+        return this.findById(id) // Tidak ada yang diupdate
       }
-      
-      queryParams.push(id);
-      
-      const [result] = await pool.query(
-        `UPDATE items SET ${updateFields.join(', ')} WHERE id = ?`,
-        queryParams
-      );
-      
+
+      queryParams.push(id)
+
+      const [result] = await pool.query(`UPDATE items SET ${updateFields.join(", ")} WHERE id = ?`, queryParams)
+
       if (result.affectedRows === 0) {
-        return null;
+        return null
       }
-      
-      return this.findById(id);
+
+      return this.findById(id)
     } catch (error) {
-      throw error;
+      throw error
     }
   }
 
@@ -121,14 +136,11 @@ class ItemModel {
    */
   static async delete(id) {
     try {
-      const [result] = await pool.query(
-        'DELETE FROM items WHERE id = ?',
-        [id]
-      );
-      
-      return result.affectedRows > 0;
+      const [result] = await pool.query("DELETE FROM items WHERE id = ?", [id])
+
+      return result.affectedRows > 0
     } catch (error) {
-      throw error;
+      throw error
     }
   }
 
@@ -140,24 +152,21 @@ class ItemModel {
    */
   static async updateStatus(id, status) {
     try {
-      const validStatuses = ['available', 'rented', 'sold'];
-      
+      const validStatuses = ["available", "rented", "sold"]
+
       if (!validStatuses.includes(status)) {
-        throw new Error(`Status tidak valid. Harus salah satu dari: ${validStatuses.join(', ')}`);
+        throw new Error(`Status tidak valid. Harus salah satu dari: ${validStatuses.join(", ")}`)
       }
-      
-      const [result] = await pool.query(
-        'UPDATE items SET status = ? WHERE id = ?',
-        [status, id]
-      );
-      
+
+      const [result] = await pool.query("UPDATE items SET status = ? WHERE id = ?", [status, id])
+
       if (result.affectedRows === 0) {
-        return null;
+        return null
       }
-      
-      return this.findById(id);
+
+      return this.findById(id)
     } catch (error) {
-      throw error;
+      throw error
     }
   }
 
@@ -177,22 +186,22 @@ class ItemModel {
         LEFT JOIN users u ON i.user_id = u.id
         LEFT JOIN categories c ON i.category_id = c.id
         WHERE i.id = ?`,
-        [id]
-      );
-      
-      if (rows.length === 0) return null;
-      
+        [id],
+      )
+
+      if (rows.length === 0) return null
+
       // Format photos as array if exists
-      const item = rows[0];
+      const item = rows[0]
       if (item.photos) {
-        item.photos = item.photos.split(',');
+        item.photos = item.photos.split(",")
       } else {
-        item.photos = [];
+        item.photos = []
       }
-      
-      return item;
+
+      return item
     } catch (error) {
-      throw error;
+      throw error
     }
   }
 
@@ -206,61 +215,61 @@ class ItemModel {
   static async findAll(filters = {}, page = 1, limit = 20) {
     try {
       // Parse page dan limit menjadi integer
-      const parsedPage = parseInt(page) || 1;
-      const parsedLimit = parseInt(limit) || 20;
-      
+      const parsedPage = Number.parseInt(page) || 1
+      const parsedLimit = Number.parseInt(limit) || 20
+
       // Base query untuk SELECT items
       let baseQuery = `
         FROM items i
         LEFT JOIN users u ON i.user_id = u.id
         LEFT JOIN categories c ON i.category_id = c.id
         WHERE 1=1
-      `;
-      
-      const queryParams = [];
-      
+      `
+
+      const queryParams = []
+
       // Apply filters
       if (filters.name) {
-        baseQuery += ' AND i.name LIKE ?';
-        queryParams.push(`%${filters.name}%`);
+        baseQuery += " AND i.name LIKE ?"
+        queryParams.push(`%${filters.name}%`)
       }
-      
+
       if (filters.category_id) {
-        baseQuery += ' AND i.category_id = ?';
-        queryParams.push(filters.category_id);
+        baseQuery += " AND i.category_id = ?"
+        queryParams.push(filters.category_id)
       }
-      
+
       if (filters.user_id) {
-        baseQuery += ' AND i.user_id = ?';
-        queryParams.push(filters.user_id);
+        baseQuery += " AND i.user_id = ?"
+        queryParams.push(filters.user_id)
       }
-      
+
       if (filters.status) {
-        baseQuery += ' AND i.status = ?';
-        queryParams.push(filters.status);
+        baseQuery += " AND i.status = ?"
+        queryParams.push(filters.status)
       }
-      
+
       if (filters.is_available_for_rent !== undefined) {
-        baseQuery += ' AND i.is_available_for_rent = ?';
-        queryParams.push(filters.is_available_for_rent);
+        baseQuery += " AND i.is_available_for_rent = ?"
+        queryParams.push(filters.is_available_for_rent)
       }
-      
+
       if (filters.is_available_for_sell !== undefined) {
-        baseQuery += ' AND i.is_available_for_sell = ?';
-        queryParams.push(filters.is_available_for_sell);
+        baseQuery += " AND i.is_available_for_sell = ?"
+        queryParams.push(filters.is_available_for_sell)
       }
-      
+
       // Count total items for pagination
-      const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
-      const [countResult] = await pool.query(countQuery, queryParams);
-      
+      const countQuery = `SELECT COUNT(*) as total ${baseQuery}`
+      const [countResult] = await pool.query(countQuery, queryParams)
+
       // Pastikan total adalah number yang valid
-      const total = countResult[0]?.total || 0;
-      
+      const total = countResult[0]?.total || 0
+
       // Calculate pagination
-      const totalPages = Math.ceil(total / parsedLimit);
-      const offset = (parsedPage - 1) * parsedLimit;
-      
+      const totalPages = Math.ceil(total / parsedLimit)
+      const offset = (parsedPage - 1) * parsedLimit
+
       // Query untuk mendapatkan data items
       const itemsQuery = `
         SELECT i.*, 
@@ -269,34 +278,96 @@ class ItemModel {
         ${baseQuery}
         ORDER BY i.created_at DESC 
         LIMIT ? OFFSET ?
-      `;
-      
+      `
+
       // Execute query with pagination
-      const [rows] = await pool.query(itemsQuery, [...queryParams, parsedLimit, offset]);
-      
+      const [rows] = await pool.query(itemsQuery, [...queryParams, parsedLimit, offset])
+
       // Format photos as array for each item
-      rows.forEach(item => {
+      rows.forEach((item) => {
         if (item.photos) {
-          item.photos = item.photos.split(',');
+          item.photos = item.photos.split(",")
         } else {
-          item.photos = [];
+          item.photos = []
         }
-      });
-      
+      })
+
       return {
         items: rows,
         pagination: {
           total: total,
           page: parsedPage,
           limit: parsedLimit,
-          totalPages: totalPages
-        }
-      };
+          totalPages: totalPages,
+        },
+      }
     } catch (error) {
-      console.error('Error in findAll:', error);
-      throw error;
+      console.error("Error in findAll:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Mendapatkan item berdasarkan koordinat dalam radius tertentu
+   * @param {number} latitude - Latitude pusat pencarian
+   * @param {number} longitude - Longitude pusat pencarian
+   * @param {number} radiusKm - Radius pencarian dalam kilometer
+   * @param {Object} filters - Filter tambahan
+   * @returns {Promise<Array>} - Array item dalam radius
+   */
+  static async findByLocation(latitude, longitude, radiusKm = 50, filters = {}) {
+    try {
+      let baseQuery = `
+        SELECT i.*, 
+          u.name as owner_name, 
+          c.name as category_name,
+          (6371 * acos(cos(radians(?)) * cos(radians(i.latitude)) * 
+          cos(radians(i.longitude) - radians(?)) + sin(radians(?)) * 
+          sin(radians(i.latitude)))) AS distance
+        FROM items i
+        LEFT JOIN users u ON i.user_id = u.id
+        LEFT JOIN categories c ON i.category_id = c.id
+        WHERE i.latitude IS NOT NULL 
+        AND i.longitude IS NOT NULL
+        HAVING distance < ?
+      `
+
+      const queryParams = [latitude, longitude, latitude, radiusKm]
+
+      // Apply additional filters
+      if (filters.status) {
+        baseQuery += " AND i.status = ?"
+        queryParams.push(filters.status)
+      }
+
+      if (filters.is_available_for_rent !== undefined) {
+        baseQuery += " AND i.is_available_for_rent = ?"
+        queryParams.push(filters.is_available_for_rent)
+      }
+
+      if (filters.is_available_for_sell !== undefined) {
+        baseQuery += " AND i.is_available_for_sell = ?"
+        queryParams.push(filters.is_available_for_sell)
+      }
+
+      baseQuery += " ORDER BY distance"
+
+      const [rows] = await pool.query(baseQuery, queryParams)
+
+      // Format photos as array for each item
+      rows.forEach((item) => {
+        if (item.photos) {
+          item.photos = item.photos.split(",")
+        } else {
+          item.photos = []
+        }
+      })
+
+      return rows
+    } catch (error) {
+      throw error
     }
   }
 }
 
-module.exports = ItemModel;
+module.exports = ItemModel

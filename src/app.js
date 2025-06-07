@@ -13,6 +13,7 @@ const reviewRoutes = require('./routes/review.routes');
 const messageRoutes = require('./routes/message.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const messageCommunityRoutes = require('./routes/messagecommunity.routes');
+const messageHobbyRoutes = require('./routes/messagehobby.routes');
 // Import middlewares
 const errorMiddleware = require('./middlewares/error.middleware');
 
@@ -34,11 +35,12 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/community-messages', messageCommunityRoutes);
+app.use('/api/hobby-messages', messageHobbyRoutes);
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
   setHeaders: (res) => {
-    res.set('Access-Control-Allow-Origin', 'http://localhost:8080');
+    res.set('Access-Control-Allow-Origin', 'https://pinjemin.netlify.app');
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
   }
 }));

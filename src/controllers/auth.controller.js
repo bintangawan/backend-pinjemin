@@ -89,7 +89,7 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    const { name, email, password, province_name, city_name } = req.body;
+    const { name, email, password, hobby, province_name, city_name } = req.body;
 
     // Cek apakah email sudah terdaftar
     const [existingUser] = await pool.query(
@@ -121,13 +121,13 @@ exports.register = async (req, res, next) => {
 
     // Simpan pengguna baru ke database
     const [result] = await pool.query(
-      'INSERT INTO users (name, email, password, province_id, province_name, city_id, city_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [name, email, hashedPassword, province_id, province_name, city_id, city_name]
+      'INSERT INTO users (name, email, password, province_id, province_name, city_id, city_name, hobby) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, province_id, province_name, city_id, city_name, hobby]
     );
 
     // Ambil data pengguna yang baru dibuat
     const [newUser] = await pool.query(
-      'SELECT id, name, email, photo, province_id, province_name, city_id, city_name, created_at FROM users WHERE id = ?',
+      'SELECT id, name, email, photo, province_id, province_name, city_id, city_name, hobby, created_at FROM users WHERE id = ?',
       [result.insertId]
     );
 

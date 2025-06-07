@@ -54,7 +54,7 @@ exports.getUserProfile = async (req, res, next) => {
 
     // Ambil data pengguna dari database
     const [users] = await pool.query(
-      'SELECT id, name, email, photo, province_id, province_name, city_id, city_name, province_name, city_name, created_at FROM users WHERE id = ?',
+      'SELECT id, name, email, photo, province_id, province_name, city_id, city_name, province_name, city_name, hobby, created_at FROM users WHERE id = ?',
       [id]
     );
 
@@ -92,7 +92,7 @@ exports.updateProfile = async (req, res, next) => {
     }
 
     const userId = req.user.id;
-    const { name, province_name, city_name } = req.body;
+    const { name, province_name, city_name, hobby } = req.body;
 
     // Ambil province_id dan city_id dari API
     let province_id = null;
@@ -114,6 +114,11 @@ exports.updateProfile = async (req, res, next) => {
     if (name) {
       updateFields.push('name = ?');
       queryParams.push(name);
+    }
+
+    if (hobby) {
+      updateFields.push('hobby = ?');
+      queryParams.push(hobby);
     }
 
     if (province_name) {
@@ -148,7 +153,7 @@ exports.updateProfile = async (req, res, next) => {
 
     // Ambil data pengguna yang telah diperbarui
     const [updatedUser] = await pool.query(
-      'SELECT id, name, email, photo, province_id, province_name, city_id, city_name, created_at FROM users WHERE id = ?',
+      'SELECT id, name, email, photo, province_id, province_name, city_id, city_name, hobby, created_at FROM users WHERE id = ?',
       [userId]
     );
 

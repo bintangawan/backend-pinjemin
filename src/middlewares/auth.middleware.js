@@ -28,7 +28,7 @@ exports.protect = async (req, res, next) => {
 
     // 3) Periksa apakah pengguna masih ada
     const [user] = await pool.query(
-      'SELECT id, name, email, photo, province_id, province_name, city_id, city_name FROM users WHERE id = ?',
+      'SELECT id, name, email, photo, province_id, province_name, city_id, city_name, hobby FROM users WHERE id = ?',
       [decoded.id]
     );
 

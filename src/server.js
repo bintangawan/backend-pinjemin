@@ -9,14 +9,14 @@ const { setupNotificationScheduler } = require('./utils/scheduler');
 require('dotenv').config();
 const server = http.createServer(app);
 
-
 // Inisialisasi Socket.io
 const io = socketIo(server, {
   cors: {
-    origin: 'http://localhost:8080', // Ganti dengan domain frontend Anda di production
+    origin: 'https://pinjemin.netlify.app', // Ganti dengan domain frontend Anda di production
     methods: ['GET', 'POST']
   }
 });
+
 // Middleware Socket.io untuk autentikasi
 io.use(async (socket, next) => {
   try {
@@ -29,9 +29,9 @@ io.use(async (socket, next) => {
     // Verifikasi token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Periksa apakah pengguna masih ada
+    // Periksa apakah pengguna masih ada - tambahkan hobby ke query
     const [user] = await pool.query(
-      'SELECT id, name, email, province_id FROM users WHERE id = ?',
+      'SELECT id, name, email, province_id, hobby FROM users WHERE id = ?',
       [decoded.id]
     );
     
@@ -62,6 +62,17 @@ io.on('connection', (socket) => {
     const provinceRoom = `community_${socket.user.province_id}`;
     socket.join(provinceRoom);
     console.log(`User ${socket.user.id} joined community room ${provinceRoom}`);
+  });
+
+  // Join hobby room
+  socket.on('joinHobby', () => {
+    if (socket.user.hobby) {
+      const hobbyRoom = `hobby_${socket.user.hobby}`;
+      socket.join(hobbyRoom);
+      console.log(`User ${socket.user.id} joined hobby room ${hobbyRoom}`);
+    } else {
+      socket.emit('hobbyError', { error: 'User tidak memiliki hobby' });
+    }
   });
   
   // Mengirim pesan
@@ -101,6 +112,31 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Error sending community message:', error);
       socket.emit('communityMessageError', { error: error.message });
+    }
+  });
+
+  // Send hobby message
+  socket.on('sendHobbyMessage', async (data) => {
+    try {
+      const { content } = data;
+      
+      if (!socket.user.hobby) {
+        socket.emit('hobbyMessageError', { error: 'User tidak memiliki hobby' });
+        return;
+      }
+
+      const messageHobbyController = require('./controllers/messagehobby.controller');
+
+      const newMessage = await messageHobbyController.sendMessageSocket({
+        sender_id: socket.user.id,
+        hobby: socket.user.hobby,
+        content
+      });
+
+      io.to(`hobby_${socket.user.hobby}`).emit('newHobbyMessage', newMessage);
+    } catch (error) {
+      console.error('Error sending hobby message:', error);
+      socket.emit('hobbyMessageError', { error: error.message });
     }
   });
   

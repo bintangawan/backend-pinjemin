@@ -12,7 +12,7 @@ class UserModel {
   static async findById(id) {
     try {
       const [rows] = await pool.query(
-        'SELECT id, name, email, photo, province_id, province_name, city_id, city_name, created_at FROM users WHERE id = ?',
+        'SELECT id, name, email, photo, province_id, province_name, city_id, city_name, hobby, created_at FROM users WHERE id = ?',
         [id]
       );
       return rows.length > 0 ? rows[0] : null;
@@ -48,8 +48,8 @@ class UserModel {
       const { name, email, password, province_id, province_name, city_id, city_name } = userData;
       
       const [result] = await pool.query(
-        'INSERT INTO users (name, email, password, province_id, province_name, city_id, city_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [name, email, password, province_id || null, province_name || null, city_id || null, city_name || null]
+        'INSERT INTO users (name, email, password, province_id, province_name, city_id, city_name, hobby) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [name, email, password, province_id || null, province_name || null, city_id || null, city_name || null, hobby]
       );
       
       return this.findById(result.insertId);
@@ -66,7 +66,7 @@ class UserModel {
    */
   static async update(id, updateData) {
     try {
-      const allowedFields = ['name', 'photo', 'province_id', 'province_name', 'city_id', 'city_name'];
+      const allowedFields = ['name', 'photo', 'province_id', 'province_name', 'city_id', 'city_name', 'hobby'];
       
       const updateFields = [];
       const queryParams = [];
